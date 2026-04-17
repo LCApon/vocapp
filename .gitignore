@@ -5,11 +5,14 @@ __pycache__/
 *.pyo
 *.pyd
 
-# UV
+# uv
 uv.lock
 
 # Environment Variables (Credentials)
 .env
+
+# Data
+*.db
 
 # Build/Install Logs
 *.log
