@@ -1,0 +1,15 @@
+# Python Bytecode and Caches
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+
+# UV
+uv.lock
+
+# Environment Variables (Credentials)
+.env
+
+# Build/Install Logs
+*.log

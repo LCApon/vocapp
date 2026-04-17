@@ -1,0 +1,10 @@
+[project]
+name = "vocapp"
+version = "0.1.0"
+description = "Personal app for learning languages"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.136.0",
+    "uvicorn>=0.44.0",
+]
