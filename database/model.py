@@ -1,15 +1,8 @@
-from sqlalchemy import create_engine, ForeignKey, UniqueConstraint, Sequence, Integer, String, DateTime, Index
+from sqlalchemy import ForeignKey, UniqueConstraint, Sequence, Integer, String, DateTime, Index
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from typing import List, Optional
 from datetime import datetime
-
-from config import settings
-
-engine = create_engine(
-    settings.database_url,
-    echo = True
-)
 
 class Base(DeclarativeBase):
     pass
@@ -20,21 +13,18 @@ class Review(Base):
     __tablename__ = "review"
     id: Mapped[int] = mapped_column(Integer, Sequence("seq_review_id"), primary_key=True)
 
-    id_translation: Mapped[str] = mapped_column(ForeignKey("translation.id"))
+    id_translation: Mapped[int] = mapped_column(ForeignKey("translation.id"))
 
     dt_review: Mapped[datetime] =  mapped_column(DateTime(timezone=True), server_default=func.now())
     rating: Mapped[int]
-    state_before: Mapped[int]
-    scheduled_days: Mapped[int]
-    elapsed_days: Mapped[int]
+    state_prev: Mapped[int]
     stability: Mapped[float]
     difficulty: Mapped[float]
 
     def __repr__(self) -> str:
         return (
             f"Review({self.id}, id_translation={self.id_translation}, " +
-            f"dt_review={self.dt_review}, rating={self.rating}, state_before={self.state_before}, " +
-            f"scheduled_days={self.scheduled_days}, elapsed_days={self.elapsed_days}, " +
+            f"dt_review={self.dt_review}, rating={self.rating}, state_prev={self.state_prev}, " +
             f"stability={self.stability}, difficulty={self.difficulty})"
         )
 
@@ -53,6 +43,15 @@ class Translation(Base):
     dt_started: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     dt_last_review: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     dt_due: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    rating: Mapped[Optional[int]]
+    state: Mapped[Optional[int]]
+    step: Mapped[Optional[int]]
+    stability: Mapped[Optional[int | float]]
+    difficulty: Mapped[Optional[int | float]]
+
+    reps: Mapped[int] = mapped_column(Integer, default=0)
+    lapses: Mapped[int] = mapped_column(Integer, default=0)
 
     # Word row with source word
     source_word: Mapped["Word"] = relationship(
@@ -81,14 +80,14 @@ class Word(Base):
     id: Mapped[int] = mapped_column(Integer, Sequence("seq_word_id"), primary_key=True)
     word: Mapped[str]
     language: Mapped[str] = mapped_column(String(2))
-    reading: Mapped[str]
+    reading: Mapped[Optional[str]]
     definition: Mapped[Optional[str]]
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
+    dt_created: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    updated_at: Mapped[Optional[datetime]] = mapped_column(
+    dt_updated: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), onupdate=func.datetime.now()
     )
 
@@ -118,15 +117,13 @@ class Word(Base):
         """
         t = Translation(
             source_word=self,
-            target_word=target,
-            # date_review=date_review,
+            target_word=target
         )
         self.translations_as_source.append(t)
 
         reverse = Translation(
             source_word=target,
-            target_word=self,
-            # date_review=date_review,
+            target_word=self
         )
         target.translations_as_source.append(reverse)
 
@@ -134,5 +131,3 @@ class Word(Base):
 
     def __repr__(self) -> str:
         return f"Word({self.id}, {self.word}, lang={self.language})"
-
-Base.metadata.create_all(engine)
