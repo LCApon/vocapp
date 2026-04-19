@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import Session, aliased
 from datetime import datetime as dt, timezone as tz
@@ -9,9 +11,10 @@ from api.model import WordCreate, ReviewInput, TranslationInput, WordResponse, T
 from service.fsrs_service import apply_review
 
 router = APIRouter()
+templates = Jinja2Templates(directory="./templates")
 
 # Words ----------------------------------------------------------------------------------------------------------------
-@router.post("/word", status_code=status.HTTP_201_CREATED, response_model=WordResponse)
+@router.post("/word", status_code=status.HTTP_201_CREATED)
 def create_word(
     data: WordCreate,
     db: Session = Depends(get_db),
@@ -35,7 +38,7 @@ def create_word(
 
     return word
 
-@router.get("/word", status_code=status.HTTP_200_OK, response_model=WordResponse)
+@router.get("/word", status_code=status.HTTP_200_OK)
 def get_word(
     word: str = Query(..., min_length=1, description="The word to search for"),
     language: int | None = Query(None, description="Optionally filter by language"),
@@ -44,15 +47,15 @@ def get_word(
     stmt = select(Word).where(Word.word == word)
     if language is not None:
         stmt = stmt.where(Word.language == language)
-    results = db.execute(stmt).scalars().all()
+    result = db.execute(stmt).scalars().first()
 
-    if not results:
+    if not result:
         raise HTTPException(status_code=404, detail="No words found")
 
-    return results
+    return result
 
 # Learning -------------------------------------------------------------------------------------------------------------
-@router.post("/translation/learn", status_code=status.HTTP_200_OK, response_model=TranslationResponse)
+@router.post("/translation/learn", status_code=status.HTTP_200_OK)
 def start_learning_translation(
     data: TranslationInput,
     db: Session = Depends(get_db)
@@ -72,34 +75,50 @@ def start_learning_translation(
     return(translation)
 
 # Reviewing ------------------------------------------------------------------------------------------------------------
-@router.get("/due", status_code=status.HTTP_200_OK)
+@router.get("/due", status_code=status.HTTP_200_OK, response_class=HTMLResponse)
 def get_due_words(
-    language: str,
+    request: Request,
+    # language: str,
     db: Session = Depends(get_db)
 ):
     WordSource = aliased(Word)
     WordTarget = aliased(Word)
 
     stmt = (
-        select(Translation, WordSource, WordTarget)
+        select(
+            Translation.id.label("ID"),
+            # Translation.id_word_source.label("ID (van)"),
+            WordSource.word.label("Van"),
+            # Translation.id_word_target.label("ID (naar)"),
+            WordTarget.word.label("Naar")
+        )
         .join(WordSource, Translation.source_word)
         .join(WordTarget, Translation.target_word)
-        .where(
-            Translation.dt_due < func.now(),
-            or_(
-                WordSource.language == language,
-                WordTarget.language == language
-            )
-        )
+        # .where(
+        #     Translation.dt_due < func.now(),
+        #     # or_(
+        #     #     WordSource.language == language,
+        #     #     WordTarget.language == language
+        #     # )
+        # )
     )
-    results = db.execute(stmt)
+    results = db.execute(stmt).all()
 
     if not results:
         raise HTTPException(status_code=404, detail="No due words found")
 
-    return results
+    flat_results = [row._asdict() for row in results]
+    
+    return templates.TemplateResponse(
+        request,
+        "table.html",
+        {
+            "rows": flat_results,
+            "columns": list(flat_results[0].keys()) if flat_results else []
+        }
+    )
 
-@router.post("/review/submit", status_code=status.HTTP_200_OK, response_model=TranslationResponse)
+@router.post("/review/submit", status_code=status.HTTP_200_OK)
 def submit_review(
     data: ReviewInput,
     db: Session = Depends(get_db)

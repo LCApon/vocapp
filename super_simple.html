@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vocapp</title>
+
+    <!-- CSS Reset -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+    </style>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Personal style -->
+    <style>
+        table.table {
+            width:auto;
+        }
+
+        .maxWidth {
+            max-width:1200px;
+        }
+
+        .offsetTop {
+            padding-top: 2em;
+        }
+
+        .offsetBottom {
+            padding-bottom: .5em;
+        }
+
+		.table-rounded {
+			border-radius: 1em;
+			overflow: hidden;
+		}
+    </style>
+</head>
+
+<div class="container-fluid maxWidth offsetTop">
+    <h1 class="offsetBottom">Vocapp</h1>
+    
+    <h2>Due reviews</h2>
+    <div id="review">
+        <div id="review-content">
+            Empty
+        </div>
+    </div>
+
+
+    <div id="lookup">
+        <div>
+            <label>Word</label>
+            <input type="text" id="lookup-word" placeholder="e.g. dog" />
+            <button class="btn" onclick="lookupWord()">Search</button>
+            <div id="lookup-results"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:8000/api';
+    let currentCard = null;
+
+    async function get_html(path) {
+        const r = await fetch(API + path);
+        return r.ok ? r.text() : null;
+        // return r.ok ? r.json() : null;
+    }
+
+    async function get_json(path) {
+        const r = await fetch(API + path);
+        return r.ok ? r.json() : null;
+    }
+
+    async function loadReview() {
+        const data = await get_html('/due');
+        const el = document.getElementById('review-content');
+        if (!data || data.length === 0) {
+            el.innerHTML = '<div>No cards due right now.</div>';
+            return;
+        }
+        currentCard = data;
+        el.innerHTML = `<div>${currentCard}</div>`;
+    }
+
+    async function lookupWord() {
+        const word = document.getElementById('lookup-word').value.trim();
+        if (!word) return;
+        const data = await get_json('/word?word=' + encodeURIComponent(word));
+        const el = document.getElementById('lookup-results');
+        if (!data || data.length === 0) { el.innerHTML = '<div class="result">No results.</div>'; return; }
+        el.innerHTML = `
+            <div>
+            <span><strong>${data.word}</strong></span>
+            <span>${data.language || ''}</span>
+            </div>`;
+    }
+
+    loadReview()
+
+</script>
