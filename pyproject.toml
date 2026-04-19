@@ -9,6 +9,7 @@ dependencies = [
     "duckdb>=1.5.2",
     "duckdb-sqlalchemy>=1.5.2",
     "fastapi>=0.136.0",
+    "fsrs>=6.3.1",
     "pydantic>=2.13.2",
     "pydantic-settings>=2.13.1",
     "pytz>=2026.1.post1",
