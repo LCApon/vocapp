@@ -47,8 +47,8 @@ class Translation(Base):
     rating: Mapped[Optional[int]]
     state: Mapped[Optional[int]]
     step: Mapped[Optional[int]]
-    stability: Mapped[Optional[int | float]]
-    difficulty: Mapped[Optional[int | float]]
+    stability: Mapped[Optional[float]]
+    difficulty: Mapped[Optional[float]]
 
     reps: Mapped[int] = mapped_column(Integer, default=0)
     lapses: Mapped[int] = mapped_column(Integer, default=0)
@@ -130,4 +130,4 @@ class Word(Base):
         return t
 
     def __repr__(self) -> str:
-        return f"Word({self.id}, {self.word}, lang={self.language})"
+        return f"Word({self.id}, {self.word}, language={self.language})"

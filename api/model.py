@@ -21,9 +21,7 @@ class TranslationInput(BaseModel):
 class WordResponse(BaseModel):
     id: int
     word: str
-    reading: str | None
-    language: int
-    dt_created: datetime
+    language: str
 
     model_config = {"from_attributes": True}
 
