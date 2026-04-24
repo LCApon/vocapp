@@ -1,50 +1,116 @@
-from sqlalchemy import ForeignKey, UniqueConstraint, Sequence, Integer, String, DateTime, Index
+from sqlalchemy import ForeignKey, UniqueConstraint, Sequence, Integer, String, DateTime, Index, Table, Column
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+from service.fsrs_service import get_updated_review
 
 class Base(DeclarativeBase):
     pass
 
-class Review(Base):
-    """Review table, with complete history of all reviews done
+wordsense_example = Table(
+    "wordsense_example",
+    Base.metadata,
+    Column("id_wordsense", ForeignKey("wordsense.id"), primary_key=True),
+    Column("id_example", ForeignKey("example.id"), primary_key=True),
+)
+
+class Sound(Base):
+    """Written pronunciation for words in different langauges and dialects
     """
-    __tablename__ = "review"
-    id: Mapped[int] = mapped_column(Integer, Sequence("seq_review_id"), primary_key=True)
+    __tablename__ = "sound"
+    id: Mapped[int] = mapped_column(Integer, Sequence("seq_sound_id"), primary_key=True)
 
-    id_translation: Mapped[int] = mapped_column(ForeignKey("translation.id"))
+    id_word: Mapped[int] = mapped_column(ForeignKey("wordsense.id"))
 
-    dt_review: Mapped[datetime] =  mapped_column(DateTime(timezone=True), server_default=func.now())
-    rating: Mapped[int]
-    state_prev: Mapped[int]
-    stability: Mapped[float]
-    difficulty: Mapped[float]
+    ipa: Mapped[str]
+    tags: Mapped[str]
 
     def __repr__(self) -> str:
         return (
-            f"Review({self.id}, id_translation={self.id_translation}, " +
-            f"dt_review={self.dt_review}, rating={self.rating}, state_prev={self.state_prev}, " +
+            f"Sound({self.id}, iso639={self.ipa}, language={self.tags})"
+        )
+
+class Example(Base):
+    """Example phrases and sentences, with their translation
+    """
+    __tablename__ = "example"
+    id: Mapped[int] = mapped_column(Integer, Sequence("seq_example_id"), primary_key=True)
+
+    example: Mapped[str]
+    translation: Mapped[str]
+
+    wordsense: Mapped[List["WordSense"]] = relationship(
+        secondary=wordsense_example,
+        back_populates="example"
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"Example({self.id}, example={self.example}, translation={self.translation})"
+        )
+
+class Language(Base):
+    """Languages used in vocapp
+    """
+    __tablename__ = "language"
+    id: Mapped[int] = mapped_column(Integer, Sequence("seq_language_id"), primary_key=True)
+
+    iso639: Mapped[str] = mapped_column(String(2))
+    language: Mapped[str]
+    emoji: Mapped[str]
+
+    wordsense: Mapped[List["WordSense"]] = relationship(back_populates="language")
+
+    def __repr__(self) -> str:
+        return (
+            f"Language({self.id}, iso639={self.iso639}, language={self.language})"
+        )
+
+class ReviewLog(Base):
+    """Review log table, the complete history of all reviews done
+    """
+    __tablename__ = "reviewlog"
+    id: Mapped[int] = mapped_column(Integer, Sequence("seq_review_id"), primary_key=True)
+
+    id_review: Mapped[int] = mapped_column(ForeignKey("review.id"))
+
+    dt_due: Mapped[datetime] =  mapped_column(DateTime(timezone=True))
+    dt_review: Mapped[datetime] =  mapped_column(DateTime(timezone=True), server_default=func.now())
+    rating: Mapped[int]
+    state: Mapped[int]
+    stability: Mapped[float]
+    difficulty: Mapped[float]
+
+    reviews: Mapped[List["Review"]] = relationship(
+        argument="Review"
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"ReviewLog({self.id}, id_review={self.id_review}, " +
+            f"dt_review={self.dt_review}, rating={self.rating}, state={self.state}, " +
             f"stability={self.stability}, difficulty={self.difficulty})"
         )
 
-class Translation(Base):
-    """Translation table, links words to their translation in another language
+class Review(Base):
+    """Review table, contains info for words and their current review
     """
-    __tablename__ = "translation"
+    __tablename__ = "review"
     __table_args__ = (
-        UniqueConstraint("id_word_source", "id_word_target"),
+        UniqueConstraint("id_wordsense"),
+        Index("ix_review_id", "id"),
     )
     id: Mapped[int] = mapped_column(Integer, Sequence("seq_translation_id"), primary_key=True)
 
-    id_word_source: Mapped[str] = mapped_column(ForeignKey("word.id"))
-    id_word_target: Mapped[str] = mapped_column(ForeignKey("word.id"))
+    id_wordsense: Mapped[str] = mapped_column(ForeignKey("wordsense.id"))
+    is_reverse: Mapped[bool]
 
-    dt_started: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    dt_started: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    dt_due: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     dt_last_review: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    dt_due: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
-    rating: Mapped[Optional[int]]
     state: Mapped[Optional[int]]
     step: Mapped[Optional[int]]
     stability: Mapped[Optional[float]]
@@ -54,32 +120,65 @@ class Translation(Base):
     lapses: Mapped[int] = mapped_column(Integer, default=0)
 
     # Word row with source word
-    source_word: Mapped["Word"] = relationship(
-        "Word", foreign_keys=[id_word_source], back_populates="translations_as_source"
+    wordsense: Mapped["WordSense"] = relationship(
+        "WordSense",
+        back_populates="review"
     )
-    # Word row with target word
-    target_word: Mapped["Word"] = relationship(
-        "Word", foreign_keys=[id_word_target], back_populates="translations_as_target"
+
+    # Logged Reviews
+    reviewLog: Mapped[List["ReviewLog"]] = relationship(
+        "ReviewLog",
+        foreign_keys="[ReviewLog.id_review]",
+        back_populates="reviews",
+        cascade="all, delete-orphan",
     )
+
+    def update_review(self, rating, dt_review = datetime.now(timezone.utc)):
+        try:
+            rLog = ReviewLog(
+                id_review=self.id,
+                dt_due=self.dt_due,
+                dt_review=dt_review,
+                rating=rating,
+                state=self.state,
+                stability=self.stability,
+                difficulty=self.difficulty
+            )
+
+            self.dt_last_review = dt_review
+            reviewNew = get_updated_review(self, rating)
+        except:
+            print("Something went wrong updating the review")
+        else:
+            self.reviewLog.append(rLog)
+            self = reviewNew
+            
+            print(f"Review and log updated:\n{self}\n{rLog}")
+
+        return self, rLog
 
     def __repr__(self) -> str:
         return (
-            f"Translation(source={self.id_word_source}, target={self.id_word_target}, "
-            f"dt_started={self.dt_started}, dt_next_review={self.dt_last_review}, dt_next_review={self.dt_due})"
+            f"Review({self.id} ({self.id_wordsense}), " +
+            f"word={self.wordsense.word}, sense={self.wordsense.sense}, " +
+            f"dt_started={self.dt_started}, dt_last_review={self.dt_last_review}, dt_due={self.dt_due})"
         )
 
-class Word(Base):
+class WordSense(Base):
     """Word table, containing all words intended to learn, currently learning or learnt
     """
-    __tablename__ = "word"
+    __tablename__ = "wordsense"
     __table_args__ = (
-        UniqueConstraint("word", "language"),
-        Index("ix_id", "id"),
-        Index("ix_word", "word"),
+        UniqueConstraint("word", "id_language"),
+        Index("ix_wordsense_id", "id"),
+        Index("ix_wordsense_word", "word"),
     )
     id: Mapped[int] = mapped_column(Integer, Sequence("seq_word_id"), primary_key=True)
+    id_word: Mapped[Optional[int]]
     word: Mapped[str]
-    language: Mapped[str] = mapped_column(String(2))
+    sense: Mapped[str]
+    translation: Mapped[str]
+    id_language: Mapped[int] = mapped_column(ForeignKey("language.id"))
     reading: Mapped[Optional[str]]
     definition: Mapped[Optional[str]]
 
@@ -91,43 +190,44 @@ class Word(Base):
         DateTime(timezone=True), onupdate=func.datetime.now()
     )
 
-    # Translation rows where this word is the source (left side)
-    translations_as_source: Mapped[List[Translation]] = relationship(
-        "Translation",
-        foreign_keys="[Translation.id_word_source]",
-        back_populates="source_word",
-        cascade="all, delete-orphan",
+    # Linked review
+    review: Mapped[List[Review]] = relationship(
+        "Review",
+        foreign_keys="[Review.id_wordsense]",
+        back_populates="wordsense",
+        cascade="all, delete-orphan"
     )
 
-    # Translation rows where this word is the target (right side)
-    translations_as_target: Mapped[List[Translation]] = relationship(
-        "Translation",
-        foreign_keys="[Translation.id_word_target]",
-        back_populates="target_word",
-        cascade="all, delete-orphan",
+    # Language info
+    language: Mapped[Language] = relationship(back_populates="wordsense")
+
+    example: Mapped[List[Example]] = relationship(
+        secondary=wordsense_example,
+        back_populates="wordsense"
     )
 
-    def add_translation(
-        self,
-        target,
+    def add_review(
+        self
         # date_review: datetime | None = None
-    ) -> Translation:
+    ) -> list:
         """
-        Convenience helper: create a Translation from self → target and reverse.
+        Convenience helper: create a Review from self → target and reverse.
         """
-        t = Translation(
-            source_word=self,
-            target_word=target
-        )
-        self.translations_as_source.append(t)
+        reviews = []
+        if not self.review:
+            reviews = [
+                Review(
+                    wordsense=self,
+                    is_reverse=False
+                ),
+                Review(
+                    wordsense=self,
+                    is_reverse=True,
+                    dt_due=datetime.now(tz=timezone.utc) + timedelta(days=7)
+                )
+            ]
 
-        reverse = Translation(
-            source_word=target,
-            target_word=self
-        )
-        target.translations_as_source.append(reverse)
-
-        return t
+        return reviews
 
     def __repr__(self) -> str:
-        return f"Word({self.id}, {self.word}, language={self.language})"
+        return f"WordSense({self.id}, {self.word}, language={self.language})"

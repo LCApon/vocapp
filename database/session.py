@@ -1,3 +1,4 @@
+from database.model import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
@@ -24,3 +25,6 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+if __name__ == "__main__":
+    Base.metadata.create_all(engine)
