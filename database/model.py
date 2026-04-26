@@ -7,7 +7,15 @@ from datetime import datetime, timezone, timedelta
 from service.fsrs_service import get_updated_card
 
 class Base(DeclarativeBase):
-    pass
+    """Base class that all other objects inherit from
+    """
+    # Timestamps
+    dt_created: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    dt_updated: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), onupdate=func.datetime.now()
+    )
 
 sense_example = Table(
     "sense_example",
@@ -231,14 +239,6 @@ class Sense(Base):
     note: Mapped[Optional[str]]
     source: Mapped[Optional[str]]
 
-    # Timestamps
-    dt_created: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    dt_updated: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), onupdate=func.datetime.now()
-    )
-
     ### Relations ###
     word: Mapped["Word"] = relationship(
         back_populates="sense"
@@ -282,7 +282,7 @@ class Sense(Base):
         return f"Sense({self.id}, {self.word.lexeme.lexeme}, {self.pos}, {self.sense}, {self.word.lexeme.language.iso639})"
 
 class Word(Base):
-    """Word table, containing all lexeme variants and their senses
+    """Word table, containing all lexeme variants, linking them to their senses
     """
     __tablename__ = "word"
     __table_args__ = (
