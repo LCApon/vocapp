@@ -226,7 +226,6 @@ class Sense(Base):
     id_word: Mapped[int] = mapped_column(ForeignKey("word.id"))
     pos: Mapped[str] # pos: Part of speech
     sense: Mapped[str]
-    translation: Mapped[str]
     definition: Mapped[Optional[str]]
     usage: Mapped[Optional[str]]
     note: Mapped[Optional[str]]
