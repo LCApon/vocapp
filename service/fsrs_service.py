@@ -17,10 +17,10 @@ def convert_to_fsrs_card(review: Review) -> Card:
         state=State(review.state),
     )
 
-def get_updated_review(
+def get_updated_card(
     review: Review,
     rating: int,
-) -> Review:
+) -> Card:
     """
     Run the FSRS algorithm for a given rating.
     Mutates the review in-place with updated FSRS fields.
@@ -35,14 +35,4 @@ def get_updated_review(
         review_datetime=review.dt_last_review
     )
 
-    # Write updated FSRS state back onto the review
-    review.dt_due = updated_card.due
-    review.state = int(updated_card.state)
-    if review.state == 1:
-        review.lapses += 1
-    review.step = updated_card.step
-    review.stability = updated_card.stability
-    review.difficulty = updated_card.difficulty
-    review.reps += 1
-
-    return review
+    return updated_card
