@@ -13,6 +13,7 @@ uv.lock
 .env
 
 # Data
+/data/
 *.db
 *.jsonl
 
