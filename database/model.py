@@ -20,7 +20,7 @@ class Base(DeclarativeBase):
 sense_example = Table(
     "sense_example",
     Base.metadata,
-    Column("id_wordsense", ForeignKey("sense.id"), primary_key=True),
+    Column("id_sense", ForeignKey("sense.id"), primary_key=True),
     Column("id_example", ForeignKey("example.id"), primary_key=True),
 )
 
