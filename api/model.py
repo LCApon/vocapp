@@ -1,17 +1,86 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict
+from enum import Enum
+from fsrs import Rating
+
+# --- Predefined values ---
+# Languages
+class LanguageISO639(str, Enum):
+    id: int
+
+    def __new__(cls, iso639: str, id_language: int):
+        obj: str = str.__new__(cls, iso639)
+        obj._value_ = iso639
+        obj.id = id_language
+        return obj
+
+    Dutch      = ("nl", 1)
+    Japanese   = ("jp", 2)
+    Vietnamese = ("vi", 3)
+    Chinese    = ("zh", 4)
+
+# Parts of speech
+class PartOfSpeech(str, Enum):
+    Adjecive = "adj"
+    Adnominal = "adnominal"
+    Adverb = "adv"
+    Affix = "affix"
+    Character = "character"
+    Circumposition = "circumpos"
+    Classifier = "classifier"
+    CombiningForm = "combining_form"
+    Conjunction = "conj"
+    Counter = "counter"
+    Determiner = "det"
+    Infix = "infix"
+    Noun = "noun"
+    Numeral = "num"
+    Particle = "particle"
+    Postposition = "postp"
+    Prefix = "prefix"
+    Preposition = "prep"
+    Pronoun = "pron"
+    Root = "root"
+    Suffix = "suffix"
+    Verb = "verb"
 
 # --- Input Models ---
+class EntryCreate(BaseModel):
+    lexeme: str = Field(..., min_length=1, description="The lexeme of the word to add")
+    word: str = Field(..., min_length=1, description="The word form to add")
+    sense: str = Field(..., min_length=1, description="The sense to add")
+    pos: PartOfSpeech = Field(
+        ...,
+        min_length=1,
+        description="The part of speech of the sense to add",
+        examples=["noun", "verb"]
+    )
 
-class WordCreate(BaseModel):
-    word: str = Field(..., min_length=1, description="The word to add")
-    language: str = Field(..., min_length=2, max_length=2, description="ISO Language Code (e.g., 'en', 'jp', 'vn')")
-    reading: Optional[str] = None
+    iso639: LanguageISO639 = Field(
+        ...,
+        min_length=2, max_length=2,
+        description="ISO-639 Language Code (2-letter)",
+        examples=["jp", "vn", "zh", "nl"]
+    )
+    pronunciation: Optional[Dict[str, str]] = Field(
+        dict(),
+        description="Pronunciation(s) of the word to add",
+        examples=[{"ipa": "[maj˧˧]", "dialect": "Hà-Nội"}]
+    )
+    source: Optional[str] = Field(
+        None,
+        description="Source of entry to add",
+        examples=["Wiktionary"]
+    )
+    addToReview: bool = Field(
+        True,
+        description="Whether to immediately add the word to the review stack"
+    )
 
 class ReviewInput(BaseModel):
     id_translation: int = Field(..., description="ID of the translation to review")
-    rating: int = Field(..., description="SRS Rating: 0=Again, 1=Hard, 2=Good, 3=Easy")
+    rating: Rating = Field(..., description="SRS Rating: 0=Again, 1=Hard, 2=Good, 3=Easy")
 
 class TranslationInput(BaseModel):
     id_translation: int = Field(..., description="ID of the translation to start learning")
