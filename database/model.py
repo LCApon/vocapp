@@ -96,6 +96,10 @@ class Example(Base):
 class Language(Base):
     """Languages used in vocapp
     """
+    __table_args__ = (
+        UniqueConstraint("iso639"),
+        UniqueConstraint("language"),
+    )
     __tablename__ = "language"
     id: Mapped[int] = mapped_column(Integer, Sequence("seq_language_id"), primary_key=True)
 
