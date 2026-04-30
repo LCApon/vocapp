@@ -93,16 +93,19 @@
     async function lookupWord() {
         const word = document.getElementById('lookup-word').value.trim();
         if (!word) return;
-        const data = await get_json('/word?word=' + encodeURIComponent(word));
+        const data = await get_html('/search/term/' + encodeURIComponent(word));
         const el = document.getElementById('lookup-results');
         if (!data || data.length === 0) { el.innerHTML = '<div class="result">No results.</div>'; return; }
-        el.innerHTML = `
-            <div>
-            <span><strong>${data.word}</strong></span>
-            <span>${data.language || ''}</span>
-            </div>`;
+        currentCard = data;
+        el.innerHTML = `<div>${currentCard}</div>`;
     }
 
     loadReview()
+
+    document.querySelectorAll(".row-btn").forEach(btn => {
+        btn.addEventListener("click", function() {
+            // Post function for add review
+        });
+    });
 
 </script>

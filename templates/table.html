@@ -4,14 +4,23 @@
             {% for col in columns %}
             <th scope="col">{{ col }}</th>
             {% endfor %}
+            <th scope="col">Add to review</th>
         </tr>
     </thead>
     <tbody>
         {% for row in rows %}
         <tr>
             {% for col in columns %}
-            <td>{{ row[col] }}</td>
+            <td>{{ row[col] | safe}}</td>
             {% endfor %}
+            <td>
+                <button class="btn btn-outline-light add-review-btn {{ row.stateActive }}"
+                    data-id-lexeme="{{ row.id_lexeme }}" data-id-word="{{ row.id_word }}" data-id-sense="{{ row.id_sense }}"
+                    data-bs-toggle="button" aria-pressed="{{ row.stateAriaPressed }}"
+                >
+                    Add
+                </button>
+            </td>
         </tr>
         {% endfor %}
     </tbody>
