@@ -1,35 +1,42 @@
-from sqlalchemy import ForeignKey, UniqueConstraint, Sequence, Integer, String, DateTime, Index, Table, Column
+from sqlalchemy import ForeignKey, UniqueConstraint, Integer, String, DateTime, Index, Table, Column, Identity
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 
 from service.fsrs_service import get_updated_card
+from config import settings
+
+
+SCHEMA = settings.schema
 
 class Base(DeclarativeBase):
     """Base class that all other objects inherit from
     """
+    __table_args__ = {"schema": SCHEMA}
+
     # Timestamps
     dt_created: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
     dt_updated: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), onupdate=func.datetime.now()
+        DateTime(timezone=True), onupdate=func.now()
     )
 
 sense_example = Table(
     "sense_example",
     Base.metadata,
-    Column("id_sense", ForeignKey("sense.id"), primary_key=True),
-    Column("id_example", ForeignKey("example.id"), primary_key=True),
+    Column("id_sense", ForeignKey(f"{SCHEMA}.sense.id"), primary_key=True),
+    Column("id_example", ForeignKey(f"{SCHEMA}.example.id"), primary_key=True),
+    schema=SCHEMA
 )
 
 class WordAttributeType(Base):
     """Types for language specific word attributes
     """
     __tablename__ = "word_attribute_type"
-    id: Mapped[int] = mapped_column(Integer, Sequence("seq_word_attribute_type_id"), primary_key=True)
-    id_language: Mapped[int] = mapped_column(ForeignKey("language.id"))
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
+    id_language: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.language.id"))
 
     name: Mapped[str]
     description: Mapped[str]
@@ -41,9 +48,9 @@ class WordAttribute(Base):
     """Language specific attributes for words
     """
     __tablename__ = "word_attribute"
-    id: Mapped[int] = mapped_column(Integer, Sequence("seq_word_attribute_id"), primary_key=True)
-    id_word: Mapped[int] = mapped_column(ForeignKey("word.id"))
-    id_type: Mapped[int] = mapped_column(ForeignKey("word_attribute_type.id"))
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
+    id_word: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
+    id_type: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word_attribute_type.id"))
 
     value: Mapped[str]
 
@@ -55,8 +62,8 @@ class Pronunciation(Base):
     """Written pronunciation for words in different langauges, esp. for different dialects
     """
     __tablename__ = "pronunciation"
-    id: Mapped[int] = mapped_column(Integer, Sequence("seq_sound_id"), primary_key=True)
-    id_word: Mapped[int] = mapped_column(ForeignKey("word.id"))
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
+    id_word: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
 
     pronunciation: Mapped[str]
     dialect: Mapped[str]
@@ -76,7 +83,7 @@ class Example(Base):
     """Example phrases and sentences, with their translation
     """
     __tablename__ = "example"
-    id: Mapped[int] = mapped_column(Integer, Sequence("seq_example_id"), primary_key=True)
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
 
     example: Mapped[str]
     translation: Mapped[str]
@@ -99,9 +106,10 @@ class Language(Base):
     __table_args__ = (
         UniqueConstraint("iso639"),
         UniqueConstraint("language"),
+        {"schema": SCHEMA}
     )
     __tablename__ = "language"
-    id: Mapped[int] = mapped_column(Integer, Sequence("seq_language_id"), primary_key=True)
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
 
     iso639: Mapped[str] = mapped_column(String(2))
     language: Mapped[str]
@@ -120,16 +128,16 @@ class ReviewLog(Base):
     """Review log table, the complete history of all reviews done
     """
     __tablename__ = "reviewlog"
-    id: Mapped[int] = mapped_column(Integer, Sequence("seq_review_id"), primary_key=True)
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
 
-    id_review: Mapped[int] = mapped_column(ForeignKey("review.id"))
+    id_review: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.review.id"))
 
     dt_due: Mapped[datetime] =  mapped_column(DateTime(timezone=True))
     dt_review: Mapped[datetime] =  mapped_column(DateTime(timezone=True), server_default=func.now())
     rating: Mapped[int]
     state: Mapped[int]
-    stability: Mapped[float]
-    difficulty: Mapped[float]
+    stability: Mapped[Optional[float]]
+    difficulty: Mapped[Optional[float]]
 
     ### Relations ###
     reviews: Mapped[List["Review"]] = relationship(
@@ -151,17 +159,18 @@ class Review(Base):
     __table_args__ = (
         UniqueConstraint("id_sense", "is_reverse"),
         Index("ix_review_id", "id"),
+        {"schema": SCHEMA}
     )
-    id: Mapped[int] = mapped_column(Integer, Sequence("seq_review_id"), primary_key=True)
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
 
-    id_sense: Mapped[str] = mapped_column(ForeignKey("sense.id"))
+    id_sense: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.sense.id"))
     is_reverse: Mapped[bool]
 
     dt_started: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     dt_due: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     dt_last_review: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
-    state: Mapped[Optional[int]]
+    state: Mapped[int] = mapped_column(Integer, default=1)
     step: Mapped[Optional[int]]
     stability: Mapped[Optional[float]]
     difficulty: Mapped[Optional[float]]
@@ -233,9 +242,10 @@ class Sense(Base):
     __table_args__ = (
         Index("ix_sense_id", "id"),
         Index("ix_sense_id_word", "id_word"),
+        {"schema": SCHEMA}
     )
-    id: Mapped[int] = mapped_column(Integer, Sequence("seq_sense_id"), primary_key=True)
-    id_word: Mapped[int] = mapped_column(ForeignKey("word.id"))
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
+    id_word: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
     pos: Mapped[str] # pos: Part of speech
     sense: Mapped[str]
     definition: Mapped[Optional[str]]
@@ -293,9 +303,10 @@ class Word(Base):
         UniqueConstraint("id_lexeme", "word"),
         Index("ix_word_id", "id"),
         Index("ix_word_word", "word"),
+        {"schema": SCHEMA}
     )
-    id: Mapped[int] = mapped_column(Integer, Sequence("seq_word_id"), primary_key=True)
-    id_lexeme: Mapped[int] = mapped_column(ForeignKey("lexeme.id"))
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
+    id_lexeme: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.lexeme.id"))
     word: Mapped[str]
     source: Mapped[Optional[str]]
 
@@ -323,9 +334,10 @@ class Lexeme(Base):
         Index("ix_lexeme_id", "id"),
         Index("ix_lexeme_lexeme", "lexeme"),
         Index("ix_lexeme_id_language", "id_language"),
+        {"schema": SCHEMA}
     )
-    id: Mapped[int] = mapped_column(Integer, Sequence("seq_lexeme_id"), primary_key=True)
-    id_language: Mapped[int] = mapped_column(ForeignKey("language.id"))
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
+    id_language: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.language.id"))
     lexeme: Mapped[str]
     source: Mapped[Optional[str]]
 
