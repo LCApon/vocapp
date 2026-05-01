@@ -7,18 +7,18 @@
             <th scope="col">Add to review</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody class="table-group-divider">
         {% for row in rows %}
         <tr>
             {% for col in columns %}
             <td>{{ row[col] | safe}}</td>
             {% endfor %}
             <td>
-                <button class="btn btn-outline-light add-review-btn {{ row.stateActive }}"
-                    data-id-lexeme="{{ row.id_lexeme }}" data-id-word="{{ row.id_word }}" data-id-sense="{{ row.id_sense }}"
-                    data-bs-toggle="button" aria-pressed="{{ row.stateAriaPressed }}"
+                <button class="btn btn-outline-light add-review-btn {{ 'active no-click' if row.isActive else ''}}"
+                    data-id-lexeme="{{ row.idLexeme }}" data-id-word="{{ row.idWord }}" data-id-sense="{{ row.idSense }}"
+                    data-bs-toggle="button" aria-pressed="{{ 'true' if row.isActive else 'false'}}"
                 >
-                    Add
+                    {{ 'Added' if row.isActive else 'Add' }}
                 </button>
             </td>
         </tr>

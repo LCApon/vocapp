@@ -78,6 +78,9 @@ class EntryCreate(BaseModel):
         description="Whether to immediately add the word to the review stack"
     )
 
+class ReviewAdd(BaseModel):
+    idSense: int = Field(..., description="ID of the sense to add to reviews")
+
 class ReviewInput(BaseModel):
     id_translation: int = Field(..., description="ID of the translation to review")
     rating: Rating = Field(..., description="SRS Rating: 0=Again, 1=Hard, 2=Good, 3=Easy")
