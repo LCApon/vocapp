@@ -61,7 +61,7 @@ class EntryCreate(BaseModel):
         ...,
         min_length=2, max_length=2,
         description="ISO-639 Language Code (2-letter)",
-        examples=["jp", "vn", "zh", "nl"]
+        examples=["vi", "jp", "zh", "nl"]
     )
     pronunciation: Optional[Dict[str, str]] = Field(
         dict(),
@@ -81,8 +81,9 @@ class EntryCreate(BaseModel):
 class ReviewAdd(BaseModel):
     idSense: int = Field(..., description="ID of the sense to add to reviews")
 
-class ReviewInput(BaseModel):
-    id_translation: int = Field(..., description="ID of the translation to review")
+class ReviewSubmit(BaseModel):
+    idReview: int = Field(..., description="ID of the review")
+    dtReview: datetime = Field(..., description="Datetime of review, UTC")
     rating: Rating = Field(..., description="SRS Rating: 0=Again, 1=Hard, 2=Good, 3=Easy")
 
 class TranslationInput(BaseModel):

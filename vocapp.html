@@ -5,15 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Vocapp</title>
 
-    <!-- CSS Reset -->
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-    </style>
-
     <!-- Bootstrap & FA -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -26,15 +17,11 @@
         }
 
         table.table {
-            width:auto;
+            max-width: 100%;
         }
 
         .maxWidth {
             max-width:1200px;
-        }
-
-        .halfWidth {
-            max-width:600px;
         }
 
         .offsetTop {
@@ -58,64 +45,71 @@
             outline: none;
             box-shadow: none;
         }
-
-        .icon-white {
-            font-size: 100px;
-            color: white;
-        }
     </style>
 </head>
 
 <!-- Body ----------------------------------------------------------------------------------------------------------->
-<body class="container-fluid maxWidth">
+<body>
+<div class="container-fluid maxWidth">
 
-    <div class="container-fluid offsetTop">
-        <h1 class="offsetBottom">Vocapp</h1>
-        
-        <h2>Review words</h2>
-        <div id="review">
-            <div id="review-content"></div>
-        </div>
+    <div class="row offsetTop">
+        <h1>Vocapp</h1>
     </div>
 
-    <div class="container-fluid offsetTop ms-0">
-        <h2>Word search</h2>
-        <div class="input-group halfWidth">
-            <div class="input-group-text p-0">
-                <select id="languageWordLookup" class="form-select bg-light border-0 no-focus-outline">
-                    <option value="">Language</option>
-                    <option value="zh">Chinese</option>
-                    <option value="nl">Dutch</option>
-                    <option value="jp">Japanese</option>
-                    <option value="vi">Vietnamese</option>
-                </select>
+    <div class="row offsetTop">
+        <div class="col">
+            <h2>Review words</h2>
+            <div id="review-content">
             </div>
-
-            <input type="text" class="form-control" id="inputWordLookup" placeholder="Word, e.g. 勉強" onkeydown="if(event.key === 'Enter') lookupWord()">
-            <button class="input-group-text btn btn-dark" onclick="lookupWord()"><i class="fa fa-search"></i></button>
         </div>
-
-        <div id="lookup-results" class="offsetTop"></div>
-
     </div>
 
+    <div class="row offsetTop">
+        <div class="col">
+            <h2>Word search</h2>
+            <div class="input-group">
+                <div class="input-group-text p-0">
+                    <select id="languageWordLookup" class="form-select bg-light border-0 no-focus-outline">
+                        <option value="">Language</option>
+                        <option value="zh">Chinese</option>
+                        <option value="nl">Dutch</option>
+                        <option value="jp">Japanese</option>
+                        <option value="vi">Vietnamese</option>
+                    </select>
+                </div>
+    
+                <input type="text" class="form-control" style="min-width:100px" id="inputWordLookup" placeholder="Word, e.g. 勉強" onkeydown="if(event.key === 'Enter') lookupWord()">
+                <button class="input-group-text btn btn-dark" onclick="lookupWord()"><i class="fa fa-search"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="lookup-results" class="row offsetTop"></div>
+
+</div>
 </body>
 
 <!-- Script ----------------------------------------------------------------------------------------------------------->
 <script>
     const API = 'http://localhost:8000/api';
     let currentCard = null;
+    let currentIdReview = null;
+    let currentIdxReview = 0;
     let cachedReviewDue = null;
+
+    let promptReview;
+    let answerReview;
+
+    let currentUTCDate;
 
     // Generic get and post functions
     async function get_html(path) {
         const r = await fetch(API + path);
         return r.ok ? r.text() : null;
-        // return r.ok ? r.json() : null;
     }
 
     async function post_json(path, body) {
-        const r = await fetch(path, {
+        const r = await fetch(API + path, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
@@ -138,11 +132,69 @@
             return;
         }
 
-        sessionStorage.setItem("reviewDue", JSON.stringify(data));
-        cachedReviewDue = JSON.parse(localStorage.getItem("reviewDue"));
-        el.innerHTML = `<div>${JSON.stringify(data)}</div>`;
+        cachedReviewDue = data;
+
+        updateCard()
     }
 
+    // Card HTML makeup
+    async function updateCard() {
+        const el = document.getElementById('review-content');
+
+        if (cachedReviewDue.length > currentIdxReview) {
+            dataReview = cachedReviewDue[currentIdxReview];
+        } else {
+            el.innerHTML = '<div>No more cards due right now.</div>';
+            return;
+        }
+
+        if (dataReview.is_reverse) {
+            promptReview = dataReview.sense;
+            answerReview = dataReview.lexeme;
+        } else {
+            promptReview = dataReview.lexeme;
+            answerReview = dataReview.sense;
+        }
+
+        currentIdReview = dataReview.id;
+
+        el.innerHTML = `
+            <div class="card bg-dark text-white text-center mx-auto" style="max-width: 18rem; border-radius: 1em;">
+                <div class="card-body">
+                    <h4 id="review-from" class="card-title py-1">${promptReview}</h5>
+                    <p class="card-text">---------------------------------------</p>
+                    <button id="btn-review-show" type="button" class="btn btn-light py-1" onclick="show_review()">Show</button>
+                    <h5 hidden id="review-to" class="card-subtitle py-1" style="font-weight:normal">${answerReview}</h5>
+                    <div hidden id="btn-review-rating" class="btn-group btn-group-lg offsetTop" role="group" aria-label="Rating buttons">
+                        <button type="button" class="btn btn-danger" onclick="rateCard(1)">Hard</button>
+                        <button type="button" class="btn btn-primary" onclick="rateCard(2)">Neutral</button>
+                        <button type="button" class="btn btn-success" onclick="rateCard(3)">Easy</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        currentIdxReview = currentIdxReview + 1
+    }
+
+    // Rate card-review
+    async function rateCard(rating) {
+        currentUTCDate = new Date(Date.now()).toISOString();
+
+        post_json(
+            "/submit/review",
+            {
+                idReview: currentIdReview,
+                dtReview: currentUTCDate,
+                rating: rating
+            }
+        );
+
+        currentIdReview = null;        
+        updateCard();
+    }
+
+    // Word lookup
     async function lookupWord() {
         const word = document.getElementById('inputWordLookup').value.trim();
         const lang = document.getElementById('languageWordLookup').value;
@@ -157,35 +209,41 @@
 
         if (!data || data.length === 0) { el.innerHTML = '<div class="result">No results.</div>'; return; }
         tableWordLookup = data;
-        el.innerHTML = `<div>${tableWordLookup}</div>`;
+        el.innerHTML = `<div class="col"><div class="table-responsive">${tableWordLookup}</div></div>`;
     }
 
     // Add to review when 'Add' button is clicked
-    document.addEventListener("click", function(event) {
-        const btn = event.target.closest(".add-review-btn");
-        if (!btn) return;
-        console.log("clicked!");
-        const idLexeme = btn.dataset.idLexeme;
-        const idWord = btn.dataset.idWord;
-        const idSense = btn.dataset.idSense;
+    async function add_to_review(button) {
+        const idLexeme = button.dataset.idlexeme;
+        const idWord = button.dataset.idword;
+        const idSense = button.dataset.idsense;
 
-        const isNowActive = btn.classList.contains("active");
+        const isNowActive = button.classList.contains("active");
 
         if (isNowActive) {
             // Add row to reviews
-            console.log("Button activated", idLexeme, idWord, idSense);
-
-            btn.classList.add("no-click");
-            btn.textContent = "Added";
+            button.classList.add("no-click");
+            button.textContent = "Added";
 
             post_json(
-                API + "/add/review",
+                "/add/review",
                 {
                     idSense: idSense
                 }
             );
         }
-    });
+    };
+
+    // Show review answer on button click
+    async function show_review() {
+        const elReviewTo = document.getElementById('review-to');
+        const elReviewBtnGroup = document.getElementById('btn-review-rating');
+        const elReviewBtnShow = document.getElementById('btn-review-show');
+        
+        elReviewTo.hidden = false
+        elReviewBtnGroup.hidden = false
+        elReviewBtnShow.hidden = true
+    };
 
     // Run on page load
     getReviews()

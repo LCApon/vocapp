@@ -14,9 +14,10 @@
             <td>{{ row[col] | safe}}</td>
             {% endfor %}
             <td>
-                <button class="btn btn-outline-light add-review-btn {{ 'active no-click' if row.isActive else ''}}"
-                    data-id-lexeme="{{ row.idLexeme }}" data-id-word="{{ row.idWord }}" data-id-sense="{{ row.idSense }}"
+                <button class="btn btn-outline-light {{ 'active no-click' if row.isActive else ''}}"
+                    data-idlexeme="{{ row.idLexeme }}" data-idword="{{ row.idWord }}" data-idsense="{{ row.idSense }}"
                     data-bs-toggle="button" aria-pressed="{{ 'true' if row.isActive else 'false'}}"
+                    onclick="add_to_review(this)"
                 >
                     {{ 'Added' if row.isActive else 'Add' }}
                 </button>

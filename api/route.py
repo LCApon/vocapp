@@ -7,7 +7,7 @@ from datetime import datetime as dt, timezone as tz, timedelta as td
 
 from database.session import get_db
 from database.model import Lexeme, Word, Sense, Review, Example, Language, Pronunciation, ReviewLog
-from api.model import EntryCreate, LanguageISO639, ReviewAdd
+from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit
 from typing import Optional
 from random import shuffle
 # from service.fsrs_service import apply_review
@@ -87,8 +87,12 @@ def search_term(
             Word.id.label("idWord"),
             Sense.id.label("idSense"),
             Language.iso639.label("Language"),
-            Lexeme.lexeme.label("Lexeme"),
-            Word.word.label("Word"),
+            case(
+                (Lexeme.lexeme == Word.word, Word.word),
+                else_=(Lexeme.lexeme + " (" + Word.word + ")")
+            ).label("Word"),
+            # Lexeme.lexeme.label("Lexeme"),
+            # Word.word.label("Word"),
             Sense.pos.label("PoS"),
             Sense.sense.label("Sense"),
             case(
@@ -130,7 +134,7 @@ def search_term(
         "table.html",
         {
             "rows": flat_results,
-            "columns": ["Language", "Lexeme", "Word", "PoS", "idSense", "Sense"]
+            "columns": ["Language", "Word", "PoS", "Sense"]
         }
     )
 
@@ -206,6 +210,26 @@ def get_due_words(db: Session = Depends(get_db)):
 
     return flat_results
 
+@router.post("/submit/review", status_code=status.HTTP_200_OK)
+def submit_review(
+    data: ReviewSubmit,
+    db: Session = Depends(get_db)
+):
+    review = db.execute(
+        select(Review).where(Review.id == data.idReview)
+    ).scalar_one()
+
+    print(review)
+    print(data)
+
+    review.update_review(
+        data.rating,
+        data.dtReview
+    )
+    db.commit()
+
+    return review
+
 # # Generic function
 # def get_entry(
 #     db: Session,
@@ -272,26 +296,3 @@ def get_due_words(db: Session = Depends(get_db)):
 # ):
 #     result = get_entry(db, Word.id, id)
 #     return [row._asdict() for row in result]
-
-
-# # Reviewing ------------------------------------------------------------------------------------------------------------
-
-
-# @router.post("/review/submit", status_code=status.HTTP_200_OK)
-# def submit_review(
-#     data: ReviewInput,
-#     db: Session = Depends(get_db)
-# ):
-#     translation = db.execute(
-#         select(Translation).where(Translation.id == data.id_translation)
-#     ).scalars().first()
-
-#     if translation is None:
-#         raise HTTPException(status_code=404, detail="Translation not found")
-
-#     review = apply_review(translation, data.rating)
-#     db.add(review)
-#     db.commit()
-#     db.refresh(translation)
-
-#     return translation
