@@ -1,10 +1,10 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from functools import lru_cache
 
 class Settings(BaseSettings):
-    database_url: str
-    app_env: str
-    schema: str
+    database_url: str = Field(init=False)
+    app_env: str = Field(init=False)
+    db_schema: str = Field(init=False)
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -12,8 +12,4 @@ class Settings(BaseSettings):
         case_sensitive=False,  # DB_HOST and db_host both work
     )
 
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
-
-settings = get_settings()
+settings = Settings()

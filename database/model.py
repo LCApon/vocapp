@@ -8,7 +8,7 @@ from service.fsrs_service import get_updated_card
 from config import settings
 
 
-SCHEMA = settings.schema
+SCHEMA = settings.db_schema
 
 class Base(DeclarativeBase):
     """Base class that all other objects inherit from

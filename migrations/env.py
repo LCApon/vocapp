@@ -73,7 +73,7 @@ def run_migrations_online() -> None:
         # PostgreSQL will emit all CREATE / ALTER / DROP statements
         # in terms of this schema by default
 
-        connection.execute(text('set search_path to "%s"' % "database"))
+        connection.execute(text('set search_path to "%s"' % settings.db_schema))
         # in SQLAlchemy v2+ the search path change needs to be committed
         connection.commit()
 
