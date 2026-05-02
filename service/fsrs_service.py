@@ -15,6 +15,7 @@ def convert_to_fsrs_card(review: Review) -> Card:
         stability=review.stability,
         difficulty=review.difficulty,
         state=State(review.state),
+        step=review.step,
     )
 
 def get_updated_card(

@@ -214,7 +214,7 @@ class Review(Base):
                 # Write updated FSRS state back onto the review
                 self.dt_due = cardUpdate.due
                 self.state = int(cardUpdate.state)
-                if self.state == 1:
+                if self.state == 3 and rLog.state != 3:
                     self.lapses += 1
                 self.step = cardUpdate.step
                 self.stability = cardUpdate.stability
@@ -224,7 +224,7 @@ class Review(Base):
                 print(f"Error updating review and/or log: {e}")
                 raise
             else:
-                print(f"Review and log successfully updated:\n{self}\n{rLog}")
+                print(f"Review and log successfully updated:\n{self}\n{rLog}\n")
 
         return self, rLog
 

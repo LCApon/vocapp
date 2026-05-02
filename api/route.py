@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Path, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select, func, or_, case
@@ -117,7 +117,7 @@ def search_term(
     result = db.execute(stmt).all()
 
     if not result:
-        raise HTTPException(status_code=404, detail=f"No entries found for '{term}'")
+        return ""
 
     flat_results = []
     for i in range(len(result)):
@@ -192,6 +192,7 @@ def get_due_words(db: Session = Depends(get_db)):
             Lexeme.lexeme,
             Word.word,
             Sense.sense,
+            Sense.pos
         )
         .select_from(Review)
         .join(Sense)
@@ -203,7 +204,7 @@ def get_due_words(db: Session = Depends(get_db)):
     results = db.execute(stmt).all()
 
     if not results:
-        raise HTTPException(status_code=404, detail="No due words found")
+        return []
 
     flat_results = [row._asdict() for row in results]
     shuffle(flat_results)
@@ -218,9 +219,6 @@ def submit_review(
     review = db.execute(
         select(Review).where(Review.id == data.idReview)
     ).scalar_one()
-
-    print(review)
-    print(data)
 
     review.update_review(
         data.rating,
