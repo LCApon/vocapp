@@ -160,15 +160,16 @@
 
         el.innerHTML = `
             <div class="card bg-dark text-white text-center mx-auto" style="max-width: 18rem; border-radius: 1em;">
+                <p style='color:var(--highlight);'>${dataReview.pos}</p>
                 <div class="card-body">
                     <h4 id="review-from" class="card-title py-1">${promptReview}</h5>
                     <p class="card-text">---------------------------------------</p>
                     <button id="btn-review-show" type="button" class="btn btn-light py-1" onclick="show_review()">Show</button>
                     <h5 hidden id="review-to" class="card-subtitle py-1" style="font-weight:normal">${answerReview}</h5>
                     <div hidden id="btn-review-rating" class="btn-group btn-group-lg offsetTop" role="group" aria-label="Rating buttons">
-                        <button type="button" class="btn btn-danger" onclick="rateCard(1)">Hard</button>
-                        <button type="button" class="btn btn-primary" onclick="rateCard(2)">Neutral</button>
-                        <button type="button" class="btn btn-success" onclick="rateCard(3)">Easy</button>
+                        <button type="button" class="btn btn-danger" onclick="rateCard(2)">Hard</button>
+                        <button type="button" class="btn btn-primary" onclick="rateCard(3)">Neutral</button>
+                        <button type="button" class="btn btn-success" onclick="rateCard(4)">Easy</button>
                     </div>
                 </div>
             </div>
@@ -203,7 +204,7 @@
         if (!word) { el.innerHTML = '<div class="result"></div>'; return; }
 
         let query = ''
-        if (lang) query = '/?iso639=' + encodeURIComponent(lang)
+        if (lang) query = '?iso639=' + encodeURIComponent(lang)
 
         const data = await get_html('/search/term/' + encodeURIComponent(word) + query);
 
