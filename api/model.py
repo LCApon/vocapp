@@ -89,6 +89,17 @@ class ReviewSubmit(BaseModel):
 class ReviewReschedule(BaseModel):
     idReview: Optional[int] = Field(None, description="ID of the review to reschedule")
 
+class ExampleInput(BaseModel):
+    example: str = Field(..., min_length=1, description="Example sentence in the language being studied")
+    translation: str = Field(..., min_length=1, description="Translation of the example sentence in English")
+
+class ReviewDataUpdate(BaseModel):
+    idReview: int = Field(..., description="ID of the review for which data should be updated")
+    lexeme: Optional[str] = Field(None, description="New lexeme text")
+    word: Optional[str] = Field(None, description="New word text")
+    sense: Optional[str] = Field(None, description="New sense text")
+    example: Optional[ExampleInput]
+
 class TranslationInput(BaseModel):
     id_translation: int = Field(..., description="ID of the translation to start learning")
 

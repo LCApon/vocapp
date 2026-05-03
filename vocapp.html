@@ -59,9 +59,24 @@
     <div class="row offsetTop">
         <div class="col">
             <h2>Review words</h2>
-            <div>
-                <button onclick="reschedule_review(currentIdReview)">Reschedule review(s)</button>
-                <div id="review-content"></div>
+            <button class="btn btn-outline-dark col-1" onclick="reschedule_review(currentIdReview)">Reschedule review(s)</button>
+            <div class = row>
+                <div id="review-content" class="col"></div>
+                <div id="review-edit" class="col">
+                    <form>
+                        <div class="form-group">
+                            <label for="form-review-lexeme">Lexeme, word and sense</label>
+                            <input id="form-review-lexeme" class="form-control" type="text" placeholder="Lexeme">
+                            <input id="form-review-word" class="form-control" type="text" placeholder="Word">
+                            <input id="form-review-sense" class="form-control" type="text" placeholder="Sense">
+
+                            <label for="form-review-example-sentence">Example sentence</label>
+                            <input id="form-review-example-sentence" class="form-control" type="text" placeholder="Example sentence">                            
+                            <input id="form-review-example-translation" class="form-control" type="text" placeholder="Example translation">
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="editEntryReview()">Submit</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -81,7 +96,7 @@
                 </div>
     
                 <input type="text" class="form-control" style="min-width:100px" id="inputWordLookup" placeholder="Word, e.g. 勉強" onkeydown="if(event.key === 'Enter') lookupWord()">
-                <button class="input-group-text btn btn-dark" onclick="lookupWord()"><i class="fa fa-search"></i></button>
+                <button class="input-group-text btn btn-dark" onclick="lookupWord()"><i class="fas fa-search"></i></button>
             </div>
         </div>
     </div>
@@ -125,6 +140,8 @@
         return r.ok ? r.json() : null;
     }
 
+    // Review page /////////////////////////////////////////////////////////////////////////////////////////////////////
+
     // Get reviewable cards
     async function getReviews() {
         const data = await get_json('/due');
@@ -137,6 +154,14 @@
         cachedReviewDue = data;
 
         updateCard()
+    }
+
+    // Reschedule review(s)
+    async function reschedule_review(id) {
+        post_json(
+            "/reschedule",
+            {id: id}
+        );
     }
 
     // Card HTML makeup
@@ -166,12 +191,13 @@
                 <div class="card-header">
                     <ul class="nav nav-pills card-header-pills">
                         <li class="nav-item col">
-                            <button hidden id="btn-rating-again" type="button" class="btn btn-outline-light" onclick="rateCard(1)"><i class="fa fa-redo"></i></button>
+                            <button hidden id="btn-rating-again" type="button" class="btn btn-outline-light" onclick="rateCard(1)"><i class="fas fa-redo"></i></button>
                         </li>
                         <li class="nav-item col">
                             <p style='color:var(--highlight);'>${dataReview.pos}</p>
                         </li>
                         <li class="nav-item col">
+                            <button hidden id="btn-edit-data" type="button" class="btn btn-outline-light" onclick="toggleEditEntryReview()"><i class="fas fa-edit"></i></i></button>
                         </li>
                     </ul>
                 </div>
@@ -192,6 +218,60 @@
         currentIdxReview = currentIdxReview + 1
     }
 
+    // Show review answer on button click
+    async function show_review() {
+        const elReviewTo = document.getElementById('review-to');
+        const elReviewBtnGroup = document.getElementById('btn-review-rating');
+        const elReviewBtnShow = document.getElementById('btn-review-show');
+        const elReviewBtnAgain = document.getElementById('btn-rating-again');
+        const elReviewBtnEdit = document.getElementById('btn-edit-data');
+        
+        
+        elReviewTo.hidden = false;
+        elReviewBtnGroup.hidden = false;
+        elReviewBtnAgain.hidden = false;
+        elReviewBtnEdit.hidden = false;
+        elReviewBtnShow.hidden = true;
+    };
+
+    // Edit data for card on review
+    async function toggleEditEntryReview() {
+        const el = document.getElementById('review-edit');
+        el.hidden = !el.hidden;
+    }
+    async function editEntryReview() {
+        const elLexeme = document.getElementById('form-review-lexeme');
+        const elWord = document.getElementById('form-review-word');
+        const elSense = document.getElementById('form-review-sense');
+        const elExSentence = document.getElementById('form-review-example-sentence');
+        const elExTranslation = document.getElementById('form-review-example-translation');
+
+        let example = null
+        if (elExSentence & elExTranslation) {
+            example = {
+                example: elExSentence.value.trim(),
+                translation: elExTranslation.value.trim()
+            }
+        }
+
+        post_json(
+            '/entry/update',
+            {
+                idReview: currentIdReview,
+                lexeme: elLexeme.value.trim() ? elLexeme.value.trim() : null,
+                word: elWord.value.trim() ? elWord.value.trim() : null,
+                sense: elSense.value.trim() ? elSense.value.trim() : null,
+                example: example
+            }
+        );
+
+        elLexeme.value = null;
+        elWord.value = null;
+        elSense.value = null;
+        elExSentence.value = null;
+        elExTranslation.value = null;
+    }
+
     // Rate card-review
     async function rateCard(rating) {
         currentUTCDate = new Date(Date.now()).toISOString();
@@ -209,6 +289,8 @@
         updateCard();
     }
 
+    // Word search /////////////////////////////////////////////////////////////////////////////////////////////////////
+    
     // Word lookup
     async function lookupWord() {
         const word = document.getElementById('inputWordLookup').value.trim();
@@ -247,28 +329,6 @@
                 }
             );
         }
-    };
-
-    // Reschedule review(s)
-    async function reschedule_review(id) {
-        post_json(
-            "/reschedule",
-            {id: id}
-        );
-    }
-
-    // Show review answer on button click
-    async function show_review() {
-        const elReviewTo = document.getElementById('review-to');
-        const elReviewBtnGroup = document.getElementById('btn-review-rating');
-        const elReviewBtnShow = document.getElementById('btn-review-show');
-        const elReviewBtnAgain = document.getElementById('btn-rating-again');
-        
-        
-        elReviewTo.hidden = false
-        elReviewBtnGroup.hidden = false
-        elReviewBtnAgain.hidden = false
-        elReviewBtnShow.hidden = true
     };
 
     // Run on page load

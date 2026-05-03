@@ -7,7 +7,7 @@ from datetime import datetime as dt, timezone as tz, timedelta as td
 
 from database.session import get_db
 from database.model import Lexeme, Word, Sense, Review, Example, Language, Pronunciation, ReviewLog
-from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit, ReviewReschedule
+from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate
 from typing import Optional
 from random import shuffle
 # from service.fsrs_service import apply_review
@@ -16,7 +16,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory="./templates")
 
 # Entries --------------------------------------------------------------------------------------------------------------
-@router.post("/entry", status_code=status.HTTP_201_CREATED)
+@router.post("/entry/create", status_code=status.HTTP_201_CREATED)
 def create_entry(
     data: EntryCreate,
     db: Session = Depends(get_db),
@@ -71,6 +71,33 @@ def create_entry(
     db.commit()
 
     return (lexeme, word, sense)
+
+@router.post("/entry/update", status_code=status.HTTP_200_OK)
+def update_entry(
+    data: ReviewDataUpdate,
+    db: Session = Depends(get_db),
+):
+    rl = db.execute(select(Review).where(Review.id == data.idReview)).scalar_one()
+
+    if data.sense:
+        rl.sense.sense = data.sense
+    
+    if data.word:
+        
+        rl.sense.word.word = data.word
+
+    if data.lexeme:
+        rl.sense.word.lexeme.lexeme = data.lexeme
+    
+    if data.example:
+        rl.sense.example.append(
+            Example(
+                example=data.example.example,
+                translation=data.example.translation
+            )
+        )
+    
+    db.commit()
 
 # Search & get ---------------------------------------------------------------------------------------------------------
 @router.get("/search/term/{term}", status_code=status.HTTP_200_OK, response_class=HTMLResponse)
