@@ -17,10 +17,10 @@ class Base(DeclarativeBase):
 
     # Timestamps
     dt_created: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.now(timezone.utc)
+        DateTime(timezone=True), server_default=func.now()
     )
     dt_updated: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), onupdate=datetime.now(timezone.utc)
+        DateTime(timezone=True), onupdate=func.now()
     )
 
 sense_example = Table(
@@ -133,7 +133,7 @@ class ReviewLog(Base):
     id_review: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.review.id"))
 
     dt_due: Mapped[datetime] =  mapped_column(DateTime(timezone=True))
-    dt_review: Mapped[datetime] =  mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    dt_review: Mapped[datetime] =  mapped_column(DateTime(timezone=True), server_default=func.now())
     rating: Mapped[int]
     state: Mapped[int]
     stability: Mapped[Optional[float]]
@@ -166,8 +166,8 @@ class Review(Base):
     id_sense: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.sense.id"))
     is_reverse: Mapped[bool]
 
-    dt_started: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
-    dt_due: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    dt_started: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    dt_due: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     dt_last_review: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     state: Mapped[int] = mapped_column(Integer, default=1)
