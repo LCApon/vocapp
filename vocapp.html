@@ -59,7 +59,9 @@
     <div class="row offsetTop">
         <div class="col">
             <h2>Review words</h2>
-            <div id="review-content">
+            <div>
+                <button onclick="reschedule_review(currentIdReview)">Reschedule review(s)</button>
+                <div id="review-content"></div>
             </div>
         </div>
     </div>
@@ -158,9 +160,21 @@
 
         currentIdReview = dataReview.id;
 
+        // <a class="nav-link active" href="#">Active</a>
         el.innerHTML = `
             <div class="card bg-dark text-white text-center mx-auto" style="max-width: 18rem; border-radius: 1em;">
-                <p style='color:var(--highlight);'>${dataReview.pos}</p>
+                <div class="card-header">
+                    <ul class="nav nav-pills card-header-pills">
+                        <li class="nav-item col">
+                            <button hidden id="btn-rating-again" type="button" class="btn btn-outline-light" onclick="rateCard(1)"><i class="fa fa-redo"></i></button>
+                        </li>
+                        <li class="nav-item col">
+                            <p style='color:var(--highlight);'>${dataReview.pos}</p>
+                        </li>
+                        <li class="nav-item col">
+                        </li>
+                    </ul>
+                </div>
                 <div class="card-body">
                     <h4 id="review-from" class="card-title py-1">${promptReview}</h5>
                     <p class="card-text">---------------------------------------</p>
@@ -168,7 +182,7 @@
                     <h5 hidden id="review-to" class="card-subtitle py-1" style="font-weight:normal">${answerReview}</h5>
                     <div hidden id="btn-review-rating" class="btn-group btn-group-lg offsetTop" role="group" aria-label="Rating buttons">
                         <button type="button" class="btn btn-danger" onclick="rateCard(2)">Hard</button>
-                        <button type="button" class="btn btn-primary" onclick="rateCard(3)">Neutral</button>
+                        <button type="button" class="btn btn-primary" onclick="rateCard(3)">Good</button>
                         <button type="button" class="btn btn-success" onclick="rateCard(4)">Easy</button>
                     </div>
                 </div>
@@ -235,14 +249,25 @@
         }
     };
 
+    // Reschedule review(s)
+    async function reschedule_review(id) {
+        post_json(
+            "/reschedule",
+            {id: id}
+        );
+    }
+
     // Show review answer on button click
     async function show_review() {
         const elReviewTo = document.getElementById('review-to');
         const elReviewBtnGroup = document.getElementById('btn-review-rating');
         const elReviewBtnShow = document.getElementById('btn-review-show');
+        const elReviewBtnAgain = document.getElementById('btn-rating-again');
+        
         
         elReviewTo.hidden = false
         elReviewBtnGroup.hidden = false
+        elReviewBtnAgain.hidden = false
         elReviewBtnShow.hidden = true
     };
 

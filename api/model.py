@@ -86,6 +86,9 @@ class ReviewSubmit(BaseModel):
     dtReview: datetime = Field(..., description="Datetime of review, UTC")
     rating: Rating = Field(..., description="SRS Rating: 0=Again, 1=Hard, 2=Good, 3=Easy")
 
+class ReviewReschedule(BaseModel):
+    idReview: Optional[int] = Field(None, description="ID of the review to reschedule")
+
 class TranslationInput(BaseModel):
     id_translation: int = Field(..., description="ID of the translation to start learning")
 

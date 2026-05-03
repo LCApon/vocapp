@@ -7,7 +7,7 @@ from datetime import datetime as dt, timezone as tz, timedelta as td
 
 from database.session import get_db
 from database.model import Lexeme, Word, Sense, Review, Example, Language, Pronunciation, ReviewLog
-from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit
+from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit, ReviewReschedule
 from typing import Optional
 from random import shuffle
 # from service.fsrs_service import apply_review
@@ -227,6 +227,25 @@ def submit_review(
     db.commit()
 
     return review
+
+# Reschedule reviews
+@router.post("/reschedule", status_code=status.HTTP_200_OK)
+def reschedule_reviews(
+    data: ReviewReschedule,
+    db: Session = Depends(get_db)
+):
+    stmt = select(Review)
+
+    if data.idReview:
+        stmt = stmt.where(Review.id == data.idReview)
+    results = db.execute(stmt).scalars().all()
+
+    for result in results:
+        result.reschedule()
+
+    db.commit()
+
+    return dict()
 
 # # Generic function
 # def get_entry(

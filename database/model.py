@@ -4,7 +4,7 @@ from sqlalchemy.sql import func
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 
-from service.fsrs_service import get_updated_card
+from service.fsrs_service import get_updated_card, get_rescheduled_card
 from config import settings
 
 
@@ -17,10 +17,10 @@ class Base(DeclarativeBase):
 
     # Timestamps
     dt_created: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), default=datetime.now(timezone.utc)
     )
     dt_updated: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True), onupdate=datetime.now(timezone.utc)
     )
 
 sense_example = Table(
@@ -133,7 +133,7 @@ class ReviewLog(Base):
     id_review: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.review.id"))
 
     dt_due: Mapped[datetime] =  mapped_column(DateTime(timezone=True))
-    dt_review: Mapped[datetime] =  mapped_column(DateTime(timezone=True), server_default=func.now())
+    dt_review: Mapped[datetime] =  mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     rating: Mapped[int]
     state: Mapped[int]
     stability: Mapped[Optional[float]]
@@ -166,8 +166,8 @@ class Review(Base):
     id_sense: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.sense.id"))
     is_reverse: Mapped[bool]
 
-    dt_started: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    dt_due: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    dt_started: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    dt_due: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     dt_last_review: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     state: Mapped[int] = mapped_column(Integer, default=1)
@@ -227,6 +227,16 @@ class Review(Base):
                 print(f"Review and log successfully updated:\n{self}\n{rLog}\n")
 
         return self, rLog
+
+    def reschedule(self):
+        cardRescheduled = get_rescheduled_card(self, self.reviewLog)
+
+        # Write updated FSRS state back onto the review
+        self.dt_due = cardRescheduled.due
+        self.state = int(cardRescheduled.state)
+        self.step = cardRescheduled.step
+        self.stability = cardRescheduled.stability
+        self.difficulty = cardRescheduled.difficulty
 
     def __repr__(self) -> str:
         return (
