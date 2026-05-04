@@ -46,7 +46,7 @@ def create_entry(
     else:
         lexeme = Lexeme(
             lexeme=data.lexeme,
-            id_language=data.iso639,
+            id_language=data.iso639.id,
             source=data.source
         )
         db.add(lexeme)
@@ -108,7 +108,7 @@ def search_term(
     db: Session = Depends(get_db),
 ):
     termLike = f"%{term}%"
-    stmt = (
+    stmtBase = (
         select(
             Lexeme.id.label("idLexeme"),
             Word.id.label("idWord"),
@@ -132,14 +132,29 @@ def search_term(
         .join(Language)
         .join(Sense)
         .join(Review, isouter=True)
-        .where(or_(Lexeme.lexeme.like(termLike), Word.word.like(termLike)))
-        .where(or_(Review.id.is_(None), ~Review.is_reverse))
-        .limit(50)
-        .order_by(Lexeme.lexeme, Language.iso639, Word.word, Sense.pos, Sense.sense)
     )
 
     if iso639:
-        stmt = stmt.where(Lexeme.id_language == iso639.id)
+        stmtBase = stmtBase.where(Lexeme.id_language == iso639.id)
+
+    stmt = (
+        # First the complete matches
+        stmtBase
+        .where(
+            or_(Lexeme.lexeme == term, Word.word == term)
+        )
+        .order_by(Sense.id)
+        .union_all(
+            # then the partial matches (limited to 50 entries)
+            stmtBase
+            .where(
+                or_(Lexeme.lexeme.like(termLike), Word.word.like(termLike)),
+                Lexeme.lexeme != term, Word.word != term
+            )
+            .where(or_(Review.id.is_(None), ~Review.is_reverse))
+            .limit(50)
+            .order_by(Lexeme.lexeme, Language.iso639, Word.word, Sense.id))
+    )
 
     result = db.execute(stmt).all()
 
