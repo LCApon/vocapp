@@ -25,11 +25,15 @@
         }
 
         .offsetTop {
-            padding-top: 2em;
+            padding-top: 1em;
         }
 
         .offsetBottom {
             padding-bottom: .5em;
+        }
+
+        .mgBottom {
+            margin-bottom: .2rem;
         }
 
 		.table-rounded {
@@ -56,13 +60,45 @@
         <h1>Vocapp</h1>
     </div>
 
+    <!-- Review words -->
     <div class="row offsetTop">
         <div class="col">
-            <h2>Review words</h2>
-            <button class="btn btn-outline-dark col-1" onclick="reschedule_review(currentIdReview)">Reschedule review(s)</button>
-            <div class = row>
-                <div id="review-content" class="col"></div>
-                <div id="review-edit" class="col">
+            <div class="row">
+                <h2 class="col">Review words</h2>
+                <div class="col">
+                    <button class="btn btn-outline-dark p-1" style="font-size: 13px" onclick="reschedule_review(currentIdReview)">Reschedule review(s)</button>
+                </div>
+            </div>
+            <div class="row offsetTop">
+                <div id="review-content" class="col">
+                    <div hidden id="review-card" class="card bg-dark text-white text-center mx-auto" style="max-width: 18rem; border-radius: 1em;">
+                        <div class="card-header">
+                            <ul class="nav nav-pills card-header-pills">
+                                <li class="nav-item col">
+                                    <button hidden id="btn-rating-again" type="button" class="btn btn-outline-light" onclick="rateCard(1)"><i class="fas fa-redo"></i></button>
+                                </li>
+                                <li class="nav-item col">
+                                    <p id="review-pos" style='color:var(--highlight);'></p>
+                                </li>
+                                <li class="nav-item col">
+                                    <button hidden id="btn-edit-data" type="button" class="btn btn-outline-light" onclick="toggleEditEntryReview()" data-toggle="button" aria-pressed="false"><i class="fas fa-edit"></i></i></button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <h4 id="review-prompt" class="card-title py-1"></h5>
+                            <p class="card-text">---------------------------------------</p>
+                            <button id="btn-review-show" type="button" class="btn btn-light py-1" onclick="show_review()">Show</button>
+                            <h5 hidden id="review-answer" class="card-subtitle py-1" style="font-weight:normal"></h5>
+                            <div hidden id="btn-review-rating" class="btn-group btn-group-lg offsetTop" role="group" aria-label="Rating buttons">
+                                <button type="button" class="btn btn-danger" onclick="rateCard(2)">Hard</button>
+                                <button type="button" class="btn btn-primary" onclick="rateCard(3)">Good</button>
+                                <button type="button" class="btn btn-success" onclick="rateCard(4)">Easy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div hidden id="review-edit" class="col">
                     <form>
                         <div class="form-group">
                             <label for="form-review-lexeme">Lexeme, word and sense</label>
@@ -74,13 +110,14 @@
                             <input id="form-review-example-sentence" class="form-control" type="text" placeholder="Example sentence">                            
                             <input id="form-review-example-translation" class="form-control" type="text" placeholder="Example translation">
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="editEntryReview()">Submit</button>
+                        <button type="button" class="btn btn-primary" onclick="addEntry()">Submit</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Word search -->
     <div class="row offsetTop">
         <div class="col">
             <h2>Word search</h2>
@@ -102,6 +139,52 @@
     </div>
 
     <div id="lookup-results" class="row offsetTop"></div>
+
+    <!-- Add entries to database -->
+    <div class="row offsetTop">
+        <div class="col">
+            <div class="row">
+                <h2>Add words</h2>
+            </div>
+            <form role="form" class="pt-3" onsubmit="addEntry()">
+                <div class="form-group row">
+                    <select id="form-add-iso639" class="col form-select bg-light border-0 no-focus-outline mgBottom" required>
+                        <option value="">Language</option>
+                        <option value="zh">Chinese</option>
+                        <option value="nl">Dutch</option>
+                        <option value="jp">Japanese</option>
+                        <option value="vi">Vietnamese</option>
+                    </select>
+                    <select id="form-add-sense-pos" class="col form-select bg-light border-0 no-focus-outline mgBottom" required>
+                        <option value="">Part of Speech</option>
+                        <option value="noun">Noun</option>
+                        <option value="verb">Verb</option>
+                        <option value="adj">Adjective</option>
+                        <option value="adv">Adverb</option>
+                    </select>
+                </div>
+                <div class="form-group row">
+                    <div class="col">
+                        <label for="form-add-lexeme">Lexeme, word and sense</label>
+                        <input id="form-add-lexeme" class="form-control mgBottom" type="text" placeholder="Lexeme" required>
+                        <input id="form-add-word" class="form-control mgBottom" type="text" placeholder="Word (leave empty to use lexeme)">
+                        <input id="form-add-sense" class="form-control mgBottom" type="text" placeholder="Sense" required>
+                        <input id="form-add-source" class="form-control mgBottom" type="text" placeholder="Source (optional)">
+                    </div>
+                    <div class="col">
+                        <label for="form-add-example-sentence">Example sentence</label>
+                        <input id="form-add-example-sentence" class="form-control mgBottom" type="text" placeholder="Example sentence">                            
+                        <input id="form-add-example-translation" class="form-control mgBottom" type="text" placeholder="Example translation">
+                        <input class="form-check-input" type="checkbox" value="" id="form-add-review" checked>
+                        <label class="form-check-label" for="form-add-review">
+                            Add to review?
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
 
 </div>
 </body>
@@ -185,49 +268,47 @@
 
         currentIdReview = dataReview.id;
 
-        // <a class="nav-link active" href="#">Active</a>
-        el.innerHTML = `
-            <div class="card bg-dark text-white text-center mx-auto" style="max-width: 18rem; border-radius: 1em;">
-                <div class="card-header">
-                    <ul class="nav nav-pills card-header-pills">
-                        <li class="nav-item col">
-                            <button hidden id="btn-rating-again" type="button" class="btn btn-outline-light" onclick="rateCard(1)"><i class="fas fa-redo"></i></button>
-                        </li>
-                        <li class="nav-item col">
-                            <p style='color:var(--highlight);'>${dataReview.pos}</p>
-                        </li>
-                        <li class="nav-item col">
-                            <button hidden id="btn-edit-data" type="button" class="btn btn-outline-light" onclick="toggleEditEntryReview()"><i class="fas fa-edit"></i></i></button>
-                        </li>
-                    </ul>
-                </div>
-                <div class="card-body">
-                    <h4 id="review-from" class="card-title py-1">${promptReview}</h5>
-                    <p class="card-text">---------------------------------------</p>
-                    <button id="btn-review-show" type="button" class="btn btn-light py-1" onclick="show_review()">Show</button>
-                    <h5 hidden id="review-to" class="card-subtitle py-1" style="font-weight:normal">${answerReview}</h5>
-                    <div hidden id="btn-review-rating" class="btn-group btn-group-lg offsetTop" role="group" aria-label="Rating buttons">
-                        <button type="button" class="btn btn-danger" onclick="rateCard(2)">Hard</button>
-                        <button type="button" class="btn btn-primary" onclick="rateCard(3)">Good</button>
-                        <button type="button" class="btn btn-success" onclick="rateCard(4)">Easy</button>
-                    </div>
-                </div>
-            </div>
-        `;
+        // Hide items not shown at start of reviewing card
+        const elReviewBtnGroup = document.getElementById('btn-review-rating');
+        const elReviewBtnAgain = document.getElementById('btn-rating-again');
+        const elReviewBtnEdit = document.getElementById('btn-edit-data');
+        const elReviewEdit = document.getElementById('review-edit');
+        const elReviewAnswer = document.getElementById('review-answer');
+
+        elReviewBtnGroup.hidden = true;
+        elReviewBtnAgain.hidden = true;
+        elReviewBtnEdit.hidden = true;
+        elReviewEdit.hidden = true;
+        elReviewAnswer.hidden = true;
+
+        // Fill card info
+        const elReviewPos = document.getElementById('review-pos');
+        const elReviewPrompt = document.getElementById('review-prompt');
+        
+        elReviewPos.innerHTML = dataReview.pos;
+        elReviewPrompt.innerHTML = promptReview;
+        elReviewAnswer.innerHTML = answerReview;
+        
+        // Unhide items shown at start of reviewing card
+        const elReviewBtnShow = document.getElementById('btn-review-show');
+        const elReviewCard = document.getElementById('review-card');
+        
+        elReviewBtnShow.hidden = false;
+        elReviewCard.hidden = false;
 
         currentIdxReview = currentIdxReview + 1
     }
 
     // Show review answer on button click
     async function show_review() {
-        const elReviewTo = document.getElementById('review-to');
+        const elReviewAnswer = document.getElementById('review-answer');
         const elReviewBtnGroup = document.getElementById('btn-review-rating');
         const elReviewBtnShow = document.getElementById('btn-review-show');
         const elReviewBtnAgain = document.getElementById('btn-rating-again');
         const elReviewBtnEdit = document.getElementById('btn-edit-data');
         
         
-        elReviewTo.hidden = false;
+        elReviewAnswer.hidden = false;
         elReviewBtnGroup.hidden = false;
         elReviewBtnAgain.hidden = false;
         elReviewBtnEdit.hidden = false;
@@ -285,7 +366,8 @@
             }
         );
 
-        currentIdReview = null;        
+        currentIdReview = null;
+
         updateCard();
     }
 
@@ -331,6 +413,55 @@
         }
     };
 
-    // Run on page load
+    // Add entries /////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Add entry
+    async function addEntry() {
+        const elIso639 = document.getElementById('form-add-iso639').value;
+        const elLexeme = document.getElementById('form-add-lexeme').value.trim();
+        const elWord = document.getElementById('form-add-word').value.trim();
+        const elSense = document.getElementById('form-add-sense').value.trim();
+        const elSensePos = document.getElementById('form-add-sense-pos').value;
+        const elSource = document.getElementById('form-add-source').value.trim();
+        const elExSentence = document.getElementById('form-add-example-sentence');
+        const elExTranslation = document.getElementById('form-add-example-translation');
+        const elAddToReview = document.getElementById('form-add-review').checked;
+        
+
+        let example = null
+        if (elExSentence & elExTranslation) {
+            example = {
+                example: elExSentence.value.trim(),
+                translation: elExTranslation.value.trim()
+            }
+        }
+
+        post_json(
+            '/entry/create',
+            {
+                iso639: elIso639,
+                lexeme: elLexeme,
+                word: elWord ? elWord : elLexeme,
+                sense: elSense,
+                pos: elSensePos,
+                source: elSource ? elSource : null,
+                example: example,
+                addToReview: elAddToReview
+            }
+        );
+
+        elIso639.selectedIndex = 0;
+        elSensePos.selectedIndex = 0;
+        elLexeme.value = null;
+        elWord.value = null;
+        elSense.value = null;
+        elSource.value = null;
+        elExSentence.value = null;
+        elExTranslation.value = null;
+    }
+
+    // Run on page load ////////////////////////////////////////////////////////////////////////////////////////////////
+
     getReviews()
+
 </script>
