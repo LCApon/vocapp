@@ -1,0 +1,28 @@
+<table class="table table-hover table-striped table-dark table-rounded table-bordered">
+    <thead>
+        <tr>
+            {% for col in columns %}
+            <th scope="col">{{ col }}</th>
+            {% endfor %}
+            <th scope="col">Add to review</th>
+        </tr>
+    </thead>
+    <tbody class="table-group-divider">
+        {% for row in rows %}
+        <tr>
+            {% for col in columns %}
+            <td>{{ row[col] | safe}}</td>
+            {% endfor %}
+            <td>
+                <button class="btn btn-outline-light {{ 'active no-click' if row.isActive else ''}}"
+                    data-idlexeme="{{ row.idLexeme }}" data-idword="{{ row.idWord }}" data-idsense="{{ row.idSense }}"
+                    data-bs-toggle="button" aria-pressed="{{ 'true' if row.isActive else 'false'}}"
+                    onclick="add_to_review(this)"
+                >
+                    {{ 'Added' if row.isActive else 'Add' }}
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
