@@ -4,11 +4,11 @@ from sqlalchemy.sql import func
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 
-from service.fsrs_service import get_updated_card, get_rescheduled_card
+from service.fsrs_service import get_cardUpdated, get_rescheduled_card
 from config import settings
 
 
-SCHEMA = settings.db_schema
+SCHEMA = settings.schemaDb
 
 class Base(DeclarativeBase):
     """Base class that all other objects inherit from
@@ -16,17 +16,17 @@ class Base(DeclarativeBase):
     __table_args__ = {"schema": SCHEMA}
 
     # Timestamps
-    dt_created: Mapped[datetime] = mapped_column(
+    dtCreated: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    dt_updated: Mapped[Optional[datetime]] = mapped_column(
+    dtUpdated: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), onupdate=func.now()
     )
 
-sense_example = Table(
+tblSenseExample = Table(
     "sense_example",
     Base.metadata,
-    Column("id_sense", ForeignKey(f"{SCHEMA}.sense.id"), primary_key=True),
+    Column("idSense", ForeignKey(f"{SCHEMA}.sense.id"), primary_key=True),
     Column("id_example", ForeignKey(f"{SCHEMA}.example.id"), primary_key=True),
     schema=SCHEMA
 )
@@ -36,7 +36,7 @@ class WordAttributeType(Base):
     """
     __tablename__ = "word_attribute_type"
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
-    id_language: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.language.id"))
+    idLanguage: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.language.id"))
 
     name: Mapped[str]
     description: Mapped[str]
@@ -49,8 +49,8 @@ class WordAttribute(Base):
     """
     __tablename__ = "word_attribute"
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
-    id_word: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
-    id_type: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word_attribute_type.id"))
+    idWord: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
+    idType: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word_attribute_type.id"))
 
     value: Mapped[str]
 
@@ -63,7 +63,7 @@ class Pronunciation(Base):
     """
     __tablename__ = "pronunciation"
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
-    id_word: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
+    idWord: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
 
     pronunciation: Mapped[str]
     dialect: Mapped[str]
@@ -90,7 +90,7 @@ class Example(Base):
 
     ### Relations ###
     sense: Mapped[List["Sense"]] = relationship(
-        secondary=sense_example,
+        secondary=tblSenseExample,
         back_populates="example"
     )
 
@@ -132,8 +132,8 @@ class ReviewLog(Base):
 
     id_review: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.review.id"))
 
-    dt_due: Mapped[datetime] =  mapped_column(DateTime(timezone=True))
-    dt_review: Mapped[datetime] =  mapped_column(DateTime(timezone=True), server_default=func.now())
+    dtDue: Mapped[datetime] =  mapped_column(DateTime(timezone=True))
+    dtReview: Mapped[datetime] =  mapped_column(DateTime(timezone=True), server_default=func.now())
     rating: Mapped[int]
     state: Mapped[int]
     stability: Mapped[Optional[float]]
@@ -148,7 +148,7 @@ class ReviewLog(Base):
     def __repr__(self) -> str:
         return (
             f"ReviewLog({self.id}, id_review={self.id_review}, " +
-            f"dt_review={self.dt_review}, rating={self.rating}, state={self.state}, " +
+            f"dtReview={self.dtReview}, rating={self.rating}, state={self.state}, " +
             f"stability={self.stability}, difficulty={self.difficulty})"
         )
 
@@ -157,18 +157,18 @@ class Review(Base):
     """
     __tablename__ = "review"
     __table_args__ = (
-        UniqueConstraint("id_sense", "is_reverse"),
+        UniqueConstraint("idSense", "typeReview"),
         Index("ix_review_id", "id"),
         {"schema": SCHEMA}
     )
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
 
-    id_sense: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.sense.id"))
-    is_reverse: Mapped[bool]
+    idSense: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.sense.id"))
+    typeReview: Mapped[int]
 
-    dt_started: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    dt_due: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    dt_last_review: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    dtStarted: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    dtDue: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    dtLastReview: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     state: Mapped[int] = mapped_column(Integer, default=1)
     step: Mapped[Optional[int]]
@@ -189,20 +189,20 @@ class Review(Base):
     )
 
     ### Methods ###
-    def update_review(self, rating, dt_review = datetime.now(timezone.utc)):
+    def update_review(self, rating, dtReview = datetime.now(timezone.utc)):
         try:
             rLog = ReviewLog(
                 id_review=self.id,
-                dt_due=self.dt_due,
-                dt_review=dt_review,
+                dtDue=self.dtDue,
+                dtReview=dtReview,
                 rating=rating,
                 state=self.state,
                 stability=self.stability,
                 difficulty=self.difficulty
             )
 
-            self.dt_last_review = dt_review
-            cardUpdate = get_updated_card(self, rating)
+            self.dtLastReview = dtReview
+            cardUpdate = get_cardUpdated(self, rating)
 
         except Exception as e:
             print(f"Error composing review log and/or card update: {e}")
@@ -212,7 +212,7 @@ class Review(Base):
                 self.reviewLog.append(rLog)
 
                 # Write updated FSRS state back onto the review
-                self.dt_due = cardUpdate.due
+                self.dtDue = cardUpdate.due
                 self.state = int(cardUpdate.state)
                 if self.state == 3 and rLog.state != 3:
                     self.lapses += 1
@@ -232,7 +232,7 @@ class Review(Base):
         cardRescheduled = get_rescheduled_card(self, self.reviewLog)
 
         # Write updated FSRS state back onto the review
-        self.dt_due = cardRescheduled.due
+        self.dtDue = cardRescheduled.due
         self.state = int(cardRescheduled.state)
         self.step = cardRescheduled.step
         self.stability = cardRescheduled.stability
@@ -240,9 +240,9 @@ class Review(Base):
 
     def __repr__(self) -> str:
         return (
-            f"Review({self.id} ({self.id_sense}), " +
+            f"Review({self.id} ({self.idSense}), " +
             f"word={self.sense.word.word}, sense={self.sense.sense}, " +
-            f"dt_started={self.dt_started}, dt_last_review={self.dt_last_review}, dt_due={self.dt_due})"
+            f"dtStarted={self.dtStarted}, dtLastReview={self.dtLastReview}, dtDue={self.dtDue})"
         )
 
 class Sense(Base):
@@ -251,11 +251,11 @@ class Sense(Base):
     __tablename__ = "sense"
     __table_args__ = (
         Index("ix_sense_id", "id"),
-        Index("ix_sense_id_word", "id_word"),
+        Index("ix_sense_idWord", "idWord"),
         {"schema": SCHEMA}
     )
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
-    id_word: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
+    idWord: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
     pos: Mapped[str] # pos: Part of speech
     sense: Mapped[str]
     definition: Mapped[Optional[str]]
@@ -272,7 +272,7 @@ class Sense(Base):
         cascade="all, delete-orphan"
     )
     example: Mapped[List[Example]] = relationship(
-        secondary=sense_example,
+        secondary=tblSenseExample,
         back_populates="sense"
     )
 
@@ -289,12 +289,12 @@ class Sense(Base):
             reviews = [
                 Review(
                     sense=self,
-                    is_reverse=False
+                    typeReview=1
                 ),
                 Review(
                     sense=self,
-                    is_reverse=True,
-                    dt_due=datetime.now(tz=timezone.utc) + timedelta(days=7)
+                    typeReview=2,
+                    dtDue=datetime.now(tz=timezone.utc) + timedelta(days=7)
                 )
             ]
 
@@ -310,13 +310,13 @@ class Word(Base):
     """
     __tablename__ = "word"
     __table_args__ = (
-        UniqueConstraint("id_lexeme", "word"),
+        UniqueConstraint("idLexeme", "word"),
         Index("ix_word_id", "id"),
         Index("ix_word_word", "word"),
         {"schema": SCHEMA}
     )
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
-    id_lexeme: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.lexeme.id"))
+    idLexeme: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.lexeme.id"))
     word: Mapped[str]
     source: Mapped[Optional[str]]
 
@@ -340,14 +340,14 @@ class Lexeme(Base):
     """
     __tablename__ = "lexeme"
     __table_args__ = (
-        UniqueConstraint("lexeme", "id_language"),
+        UniqueConstraint("lexeme", "idLanguage"),
         Index("ix_lexeme_id", "id"),
         Index("ix_lexeme_lexeme", "lexeme"),
-        Index("ix_lexeme_id_language", "id_language"),
+        Index("ix_lexeme_idLanguage", "idLanguage"),
         {"schema": SCHEMA}
     )
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
-    id_language: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.language.id"))
+    idLanguage: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.language.id"))
     lexeme: Mapped[str]
     source: Mapped[Optional[str]]
 

@@ -9,10 +9,10 @@ from fsrs import Rating
 class LanguageISO639(str, Enum):
     id: int
 
-    def __new__(cls, iso639: str, id_language: int):
+    def __new__(cls, iso639: str, idLanguage: int):
         obj: str = str.__new__(cls, iso639)
         obj._value_ = iso639
-        obj.id = id_language
+        obj.id = idLanguage
         return obj
 
     Dutch      = ("nl", 1)
@@ -20,30 +20,44 @@ class LanguageISO639(str, Enum):
     Vietnamese = ("vi", 3)
     Chinese    = ("zh", 4)
 
+# Review types
+class ReviewType(str, Enum):
+    id: int
+
+    def __new__(cls, typeReview: str, idType: int):
+        obj: str = str.__new__(cls, typeReview)
+        obj._value_ = typeReview
+        obj.id = idType
+        return obj
+
+    Recognition = ("recognition", 1)
+    Production  = ("production", 2)
+    Cloze       = ("cloze", 3)
+
 # Parts of speech
 class PartOfSpeech(str, Enum):
-    Adjecive = "adj"
-    Adnominal = "adnominal"
-    Adverb = "adv"
-    Affix = "affix"
-    Character = "character"
+    Adjecive       = "adj"
+    Adnominal      = "adnominal"
+    Adverb         = "adv"
+    Affix          = "affix"
+    Character      = "character"
     Circumposition = "circumpos"
-    Classifier = "classifier"
-    CombiningForm = "combining_form"
-    Conjunction = "conj"
-    Counter = "counter"
-    Determiner = "det"
-    Infix = "infix"
-    Noun = "noun"
-    Numeral = "num"
-    Particle = "particle"
-    Postposition = "postp"
-    Prefix = "prefix"
-    Preposition = "prep"
-    Pronoun = "pron"
-    Root = "root"
-    Suffix = "suffix"
-    Verb = "verb"
+    Classifier     = "classifier"
+    CombiningForm  = "combining_form"
+    Conjunction    = "conj"
+    Counter        = "counter"
+    Determiner     = "det"
+    Infix          = "infix"
+    Noun           = "noun"
+    Numeral        = "num"
+    Particle       = "particle"
+    Postposition   = "postp"
+    Prefix         = "prefix"
+    Preposition    = "prep"
+    Pronoun        = "pron"
+    Root           = "root"
+    Suffix         = "suffix"
+    Verb           = "verb"
 
 # --- Input Models ---
 class EntryCreate(BaseModel):
@@ -99,27 +113,3 @@ class ReviewDataUpdate(BaseModel):
     word: Optional[str] = Field(None, description="New word text")
     sense: Optional[str] = Field(None, description="New sense text")
     example: Optional[ExampleInput]
-
-class TranslationInput(BaseModel):
-    id_translation: int = Field(..., description="ID of the translation to start learning")
-
-# --- Output Models ---
-
-class WordResponse(BaseModel):
-    id: int
-    word: str
-    language: str
-
-    model_config = {"from_attributes": True}
-
-class TranslationResponse(BaseModel):
-    id: int
-
-    id_word_source: str
-    id_word_target: str
-
-    dt_started: Optional[datetime]
-    dt_last_review: Optional[datetime]
-    dt_due: Optional[datetime]
-
-    model_config = {"from_attributes": True}

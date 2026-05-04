@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Path, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Path
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from sqlalchemy import select, func, or_, case
+from sqlalchemy import select, or_, case
 from sqlalchemy.orm import Session
 from datetime import datetime as dt, timezone as tz, timedelta as td
 
 from database.session import get_db
-from database.model import Lexeme, Word, Sense, Review, Example, Language, Pronunciation, ReviewLog
+from database.model import Lexeme, Word, Sense, Review, Example, Language
 from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate
 from typing import Optional
 from random import shuffle
@@ -25,7 +25,7 @@ def create_entry(
     lexeme = db.execute(
         select(Lexeme)
             .join(Language)
-            .where(Lexeme.lexeme == data.lexeme, Lexeme.id_language == data.iso639.id)
+            .where(Lexeme.lexeme == data.lexeme, Lexeme.idLanguage == data.iso639.id)
     ).scalar()
 
     word = None
@@ -46,7 +46,7 @@ def create_entry(
     else:
         lexeme = Lexeme(
             lexeme=data.lexeme,
-            id_language=data.iso639.id,
+            idLanguage=data.iso639.id,
             source=data.source
         )
         db.add(lexeme)
@@ -135,7 +135,7 @@ def search_term(
     )
 
     if iso639:
-        stmtBase = stmtBase.where(Lexeme.id_language == iso639.id)
+        stmtBase = stmtBase.where(Lexeme.idLanguage == iso639.id)
 
     stmt = (
         # First the complete matches
@@ -151,7 +151,7 @@ def search_term(
                 or_(Lexeme.lexeme.like(termLike), Word.word.like(termLike)),
                 Lexeme.lexeme != term, Word.word != term
             )
-            .where(or_(Review.id.is_(None), ~Review.is_reverse))
+            .where(or_(Review.id.is_(None), Review.typeReview == 1))
             .limit(50)
             .order_by(Lexeme.lexeme, Language.iso639, Word.word, Sense.id))
     )
@@ -161,21 +161,21 @@ def search_term(
     if not result:
         return ""
 
-    flat_results = []
+    resultsFlat = []
     for i in range(len(result)):
-        flat_results += [dict()]
+        resultsFlat += [dict()]
         
         for k, v in result[i]._asdict().items():
-            flat_results[i][k] = v
+            resultsFlat[i][k] = v
 
             if k in ("Lexeme", "Word"):
-                flat_results[i][k] = flat_results[i][k].replace(term, f"<b style='color:var(--highlight);'>{term}</b>")
+                resultsFlat[i][k] = resultsFlat[i][k].replace(term, f"<b style='color:var(--highlight);'>{term}</b>")
 
     return templates.TemplateResponse(
         request,
         "table.html",
         {
-            "rows": flat_results,
+            "rows": resultsFlat,
             "columns": ["Language", "Word", "PoS", "Sense"]
         }
     )
@@ -188,7 +188,7 @@ def start_learning_translation(
 ):
 
     rExisting = db.execute(
-        select(Review).where(Review.id_sense == data.idSense)
+        select(Review).where(Review.idSense == data.idSense)
     ).all()
     if rExisting:
         return rExisting
@@ -201,20 +201,20 @@ def start_learning_translation(
         raise HTTPException(status_code=404, detail=f"Sense with id '{data.idSense}' not found")
 
     dctKwargs = {
-        "id_sense": data.idSense,
-        "dt_started": dt.now(tz=tz.utc),
+        "idSense": data.idSense,
+        "dtStarted": dt.now(tz=tz.utc),
         "sense": sData.scalar_one()
     }
 
     rData = [
         Review(
-            is_reverse=False,
-            dt_due=dt.now(tz=tz.utc),
+            typeReview=1,
+            dtDue=dt.now(tz=tz.utc),
             **dctKwargs
         ),
         Review(
-            is_reverse=True,
-            dt_due=dt.now(tz=tz.utc) + td(days=7),
+            typeReview=2,
+            dtDue=dt.now(tz=tz.utc) + td(days=7),
             **dctKwargs
         ),
     ]
@@ -229,7 +229,7 @@ def get_due_words(db: Session = Depends(get_db)):
     stmt = (
         select(
             Review.id,
-            Review.is_reverse,
+            Review.typeReview,
             Language.language,
             Lexeme.lexeme,
             Word.word,
@@ -241,17 +241,17 @@ def get_due_words(db: Session = Depends(get_db)):
         .join(Word)
         .join(Lexeme)
         .join(Language)
-        .where(Review.dt_due < dt.now(tz.utc))
+        .where(Review.dtDue < dt.now(tz.utc))
     )
     results = db.execute(stmt).all()
 
     if not results:
         return []
 
-    flat_results = [row._asdict() for row in results]
-    shuffle(flat_results)
+    resultsFlat = [row._asdict() for row in results]
+    shuffle(resultsFlat)
 
-    return flat_results
+    return resultsFlat
 
 @router.post("/submit/review", status_code=status.HTTP_200_OK)
 def submit_review(
@@ -304,7 +304,7 @@ def reschedule_reviews(
 #     )
 
 #     if iso639:
-#         stmt = stmt.where(Lexeme.id_language == iso639.id)
+#         stmt = stmt.where(Lexeme.idLanguage == iso639.id)
 
 #     result = db.execute(stmt).all()
 

@@ -13,17 +13,17 @@ scheduler = Scheduler(
     relearning_steps=(timedelta(hours=1), timedelta(days=1)),
 )
 
-def convert_to_fsrs_card(review: Review) -> Card:
+def convert_to_cardFsrs(review: Review) -> Card:
     """Reconstruct an fsrs.Card from the fields stored in the DB."""
     return Card(
-        due=review.dt_due,
+        due=review.dtDue,
         stability=review.stability,
         difficulty=review.difficulty,
         state=State(review.state),
         step=review.step,
     )
 
-def get_updated_card(
+def get_cardUpdated(
     review: Review,
     rating: int,
 ) -> Card:
@@ -32,24 +32,24 @@ def get_updated_card(
     Mutates the review in-place with updated FSRS fields.
     Returns that updated Review entry.
     """
-    fsrs_card = convert_to_fsrs_card(review)
-    fsrs_rating = Rating(rating)
+    cardFsrs = convert_to_cardFsrs(review)
+    ratingFsrs = Rating(rating)
 
-    updated_card, review_log = scheduler.review_card(
-        fsrs_card,
-        fsrs_rating,
-        review_datetime=review.dt_last_review
+    cardUpdated, review_log = scheduler.review_card(
+        cardFsrs,
+        ratingFsrs,
+        review_datetime=review.dtLastReview
     )
 
-    return updated_card
+    return cardUpdated
 
 def get_rescheduled_card(
     review: Review,
     lstReviewLog: List[ReviewLog]
 ) -> Card:
-    fsrs_card = convert_to_fsrs_card(review)
+    cardFsrs = convert_to_cardFsrs(review)
 
-    lstFsrsReviewLog = [ReviewLogFsrs(fsrs_card.card_id, Rating(row.rating), row.dt_review, None) for row in lstReviewLog]
-    updated_card = scheduler.reschedule_card(fsrs_card, lstFsrsReviewLog)
+    lstFsrsReviewLog = [ReviewLogFsrs(cardFsrs.card_id, Rating(row.rating), row.dtReview, None) for row in lstReviewLog]
+    cardUpdated = scheduler.reschedule_card(cardFsrs, lstFsrsReviewLog)
 
-    return updated_card
+    return cardUpdated

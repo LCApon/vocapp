@@ -8,8 +8,8 @@ from config import settings
 
 # Engine
 engine = create_engine(
-    settings.database_url,
-    echo=settings.app_env == "development",
+    settings.urlDatabase,
+    echo=settings.envApp == "development",
 )
 
 # Session factory

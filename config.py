@@ -2,9 +2,9 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    database_url: str = Field(init=False)
-    app_env: str = Field(init=False)
-    db_schema: str = Field(init=False)
+    urlDatabase: str = Field(init=False)
+    envApp: str = Field(init=False)
+    schemaDb: str = Field(init=False)
 
     model_config = SettingsConfigDict(
         env_file=".env",
