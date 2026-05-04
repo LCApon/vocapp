@@ -39,7 +39,7 @@ def create_entry(
             sense = db.execute(
                 select(Sense)
                     .where(Sense.word == word, Sense.sense == data.sense)
-            )
+            ).scalar()
 
             if sense:
                 return((lexeme, word, sense))
@@ -68,6 +68,11 @@ def create_entry(
         source=data.source
     )
     db.add(sense)
+    db.flush()
+
+    if data.addToReview:
+        sense.add_review()
+
     db.commit()
 
     return (lexeme, word, sense)

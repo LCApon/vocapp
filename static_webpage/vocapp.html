@@ -146,7 +146,7 @@
             <div class="row">
                 <h2>Add words</h2>
             </div>
-            <form role="form" class="pt-3" onsubmit="addEntry()">
+            <form id="form-add-entry" role="form" class="pt-3">
                 <div class="form-group row">
                     <select id="form-add-iso639" class="col form-select bg-light border-0 no-focus-outline mgBottom" required>
                         <option value="">Language</option>
@@ -416,6 +416,18 @@
     // Add entries /////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Add entry
+    document.getElementById('form-add-entry').addEventListener('submit', function(event) {
+        event.preventDefault(); // stop the page reload
+
+        // Perform built-in validation
+        if (!this.checkValidity()) {
+            this.reportValidity();
+            return;
+        }
+
+        addEntry(new FormData(this));
+    });
+
     async function addEntry() {
         const elIso639 = document.getElementById('form-add-iso639').value;
         const elLexeme = document.getElementById('form-add-lexeme').value.trim();
@@ -426,7 +438,6 @@
         const elExSentence = document.getElementById('form-add-example-sentence');
         const elExTranslation = document.getElementById('form-add-example-translation');
         const elAddToReview = document.getElementById('form-add-review').checked;
-        
 
         let example = null
         if (elExSentence & elExTranslation) {
@@ -436,7 +447,7 @@
             }
         }
 
-        post_json(
+        r = post_json(
             '/entry/create',
             {
                 iso639: elIso639,

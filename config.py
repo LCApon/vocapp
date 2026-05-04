@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     urlDatabase: str = Field(init=False)
     envApp: str = Field(init=False)
     schemaDb: str = Field(init=False)
+    originsCORS: list = Field(init=False)
 
     model_config = SettingsConfigDict(
         env_file=".env",

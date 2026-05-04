@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-
+from config import settings
 from database.model import Base
 from database.session import engine
 from api.route import router
@@ -26,8 +26,7 @@ vocapp = FastAPI(
 
 vocapp.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    # allow_origins=["http://localhost:8000", "vocab_app_simple.html:1"],
+    allow_origins=settings.originsCORS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
