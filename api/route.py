@@ -123,8 +123,6 @@ def search_term(
                 (Lexeme.lexeme == Word.word, Word.word),
                 else_=(Lexeme.lexeme + " (" + Word.word + ")")
             ).label("Word"),
-            # Lexeme.lexeme.label("Lexeme"),
-            # Word.word.label("Word"),
             Sense.pos.label("PoS"),
             Sense.sense.label("Sense"),
             case(
@@ -153,7 +151,7 @@ def search_term(
             # then the partial matches (limited to 50 entries)
             stmtBase
             .where(
-                or_(Lexeme.lexeme.like(termLike), Word.word.like(termLike)),
+                or_(Lexeme.lexeme.ilike(termLike), Word.word.ilike(termLike)),
                 Lexeme.lexeme != term, Word.word != term
             )
             .where(or_(Review.id.is_(None), Review.typeReview == 1))
