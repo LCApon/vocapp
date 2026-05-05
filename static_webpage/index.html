@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Vocapp</title>
 
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+
     <!-- Bootstrap & FA -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -202,6 +204,9 @@
 
     let currentUTCDate;
 
+    let elWord = document.getElementById('inputWordLookup');
+    elWord.value = null;
+
     // Generic get and post functions
     async function get_html(path) {
         const r = await fetch(API + path);
@@ -375,8 +380,10 @@
     
     // Word lookup
     async function lookupWord() {
-        const word = document.getElementById('inputWordLookup').value.trim();
+        const elWord = document.getElementById('inputWordLookup');
         const lang = document.getElementById('languageWordLookup').value;
+        
+        const word = elWord.value.trim()
 
         const el = document.getElementById('lookup-results');
         if (!word) { el.innerHTML = '<div class="result"></div>'; return; }
@@ -389,6 +396,7 @@
         if (!data || data.length === 0) { el.innerHTML = '<div class="result">No results.</div>'; return; }
         tableWordLookup = data;
         el.innerHTML = `<div class="col"><div class="table-responsive">${tableWordLookup}</div></div>`;
+        elWord.value = null;
     }
 
     // Add to review when 'Add' button is clicked
@@ -429,15 +437,15 @@
     });
 
     async function addEntry() {
-        const elIso639 = document.getElementById('form-add-iso639').value;
-        const elLexeme = document.getElementById('form-add-lexeme').value.trim();
-        const elWord = document.getElementById('form-add-word').value.trim();
-        const elSense = document.getElementById('form-add-sense').value.trim();
-        const elSensePos = document.getElementById('form-add-sense-pos').value;
-        const elSource = document.getElementById('form-add-source').value.trim();
+        const elIso639 = document.getElementById('form-add-iso639');
+        const elLexeme = document.getElementById('form-add-lexeme');
+        const elWord = document.getElementById('form-add-word');
+        const elSense = document.getElementById('form-add-sense');
+        const elSensePos = document.getElementById('form-add-sense-pos');
+        const elSource = document.getElementById('form-add-source');
         const elExSentence = document.getElementById('form-add-example-sentence');
         const elExTranslation = document.getElementById('form-add-example-translation');
-        const elAddToReview = document.getElementById('form-add-review').checked;
+        const elAddToReview = document.getElementById('form-add-review');
 
         let example = null
         if (elExSentence & elExTranslation) {
@@ -450,14 +458,14 @@
         r = post_json(
             '/entry/create',
             {
-                iso639: elIso639,
-                lexeme: elLexeme,
-                word: elWord ? elWord : elLexeme,
-                sense: elSense,
-                pos: elSensePos,
-                source: elSource ? elSource : null,
+                iso639: elIso639.value,
+                lexeme: elLexeme.value.trim(),
+                word: elWord.value.trim() ? elWord.value.trim() : elLexeme.value.trim(),
+                sense: elSense.value.trim(),
+                pos: elSensePos.value,
+                source: elSource.value.trim() ? elSource.value.trim() : null,
                 example: example,
-                addToReview: elAddToReview
+                addToReview: elAddToReview.checked
             }
         );
 
