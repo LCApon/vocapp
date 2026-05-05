@@ -184,7 +184,7 @@ def search_term(
     )
 
 # Learning -------------------------------------------------------------------------------------------------------------
-@router.post("/add/review/", status_code=status.HTTP_200_OK)
+@router.post("/add/review", status_code=status.HTTP_200_OK)
 def start_learning_translation(
     data: ReviewAdd,
     db: Session = Depends(get_db)
