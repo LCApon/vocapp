@@ -7,7 +7,7 @@ from datetime import datetime as dt, timezone as tz, timedelta as td
 
 from database.session import get_db
 from database.model import Lexeme, Word, Sense, Review, Example, Language
-from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate
+from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate, PartOfSpeech
 from typing import Optional
 from random import shuffle
 # from service.fsrs_service import apply_review
@@ -125,16 +125,14 @@ def search_term(
             ).label("Word"),
             Sense.pos.label("PoS"),
             Sense.sense.label("Sense"),
-            case(
-                (Review.id.is_not(None), True),
-                else_=False
-            ).label("isActive")
+            Review.id.is_not(None).label("isActive")
         )
         .select_from(Word)
         .join(Lexeme)
         .join(Language)
         .join(Sense)
         .join(Review, isouter=True)
+        .where(or_(Review.id.is_(None), Review.typeReview == 1))
     )
 
     if iso639:
@@ -154,7 +152,6 @@ def search_term(
                 or_(Lexeme.lexeme.ilike(termLike), Word.word.ilike(termLike)),
                 Lexeme.lexeme != term, Word.word != term
             )
-            .where(or_(Review.id.is_(None), Review.typeReview == 1))
             .limit(50)
             .order_by(Lexeme.lexeme, Language.iso639, Word.word, Sense.id))
     )
@@ -183,6 +180,36 @@ def search_term(
         }
     )
 
+@router.get("/get/languages", status_code=status.HTTP_200_OK, response_class=HTMLResponse)
+def get_languages_selector(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+
+    results = db.execute(select(Language.iso639.label("value"), Language.language.label("label"))).all()
+    resultsFlat = [{"value": "", "label": "Language"}] + [row._asdict() for row in results]
+
+    return templates.TemplateResponse(
+        request,
+        "selector.html",
+        {
+            "options": resultsFlat
+        }
+    )
+
+@router.get("/get/pos", status_code=status.HTTP_200_OK, response_class=HTMLResponse)
+def get_pos_selector(
+    request: Request
+):
+    ctxt = [{"value": "", "label": "Part of Speech"}] + [{'value': i.value, 'label': i.name } for i in PartOfSpeech]
+
+    return templates.TemplateResponse(
+        request,
+        "selector.html",
+        {
+            "options": ctxt
+        }
+    )
 # Learning -------------------------------------------------------------------------------------------------------------
 @router.post("/add/review", status_code=status.HTTP_200_OK)
 def start_learning_translation(

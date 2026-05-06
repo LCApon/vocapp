@@ -126,11 +126,6 @@
             <div class="input-group">
                 <div class="input-group-text p-0">
                     <select id="languageWordLookup" class="form-select bg-light border-0 no-focus-outline">
-                        <option value="">Language</option>
-                        <option value="zh">Chinese</option>
-                        <option value="nl">Dutch</option>
-                        <option value="jp">Japanese</option>
-                        <option value="vi">Vietnamese</option>
                     </select>
                 </div>
     
@@ -151,18 +146,8 @@
             <form id="form-add-entry" role="form" class="pt-3">
                 <div class="form-group row">
                     <select id="form-add-iso639" class="col form-select bg-light border-0 no-focus-outline mgBottom" required>
-                        <option value="">Language</option>
-                        <option value="zh">Chinese</option>
-                        <option value="nl">Dutch</option>
-                        <option value="jp">Japanese</option>
-                        <option value="vi">Vietnamese</option>
                     </select>
                     <select id="form-add-sense-pos" class="col form-select bg-light border-0 no-focus-outline mgBottom" required>
-                        <option value="">Part of Speech</option>
-                        <option value="noun">Noun</option>
-                        <option value="verb">Verb</option>
-                        <option value="adj">Adjective</option>
-                        <option value="adv">Adverb</option>
                     </select>
                 </div>
                 <div class="form-group row">
@@ -481,6 +466,30 @@
 
     // Run on page load ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    // Get languages for selectors
+    async function getLanguagesSelector(){
+        
+        const elForm = document.getElementById('form-add-iso639');
+        const elSearch = document.getElementById('languageWordLookup');
+
+        const optionsSelector = await get_html('/get/languages');
+        console.log(optionsSelector)
+
+        elForm.innerHTML = optionsSelector;
+        elSearch.innerHTML = optionsSelector;
+    }
+
+    // Get parts of speech for selector
+    async function getPosSelector(){
+        const el = document.getElementById('form-add-sense-pos');
+
+        const optionsSelector = await get_html('/get/pos');
+
+        el.innerHTML = optionsSelector;
+    }
+
+    getLanguagesSelector()
+    getPosSelector()
     getReviews()
 
 </script>

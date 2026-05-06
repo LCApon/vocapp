@@ -36,7 +36,7 @@ class ReviewType(str, Enum):
 
 # Parts of speech
 class PartOfSpeech(str, Enum):
-    Adjecive       = "adj"
+    Adjective      = "adj"
     Adnominal      = "adnominal"
     Adverb         = "adv"
     Affix          = "affix"
