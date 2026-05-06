@@ -6,10 +6,10 @@ from sqlalchemy.orm import Session
 from datetime import datetime as dt, timezone as tz, timedelta as td
 
 from database.session import get_db
-from database.model import Lexeme, Word, Sense, Review, Example, Language
+from database.model import Lexeme, Word, Sense, Review, Example, Language, tblSenseExample
 from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate, PartOfSpeech
 from typing import Optional
-from random import shuffle
+from random import shuffle, choice
 # from service.fsrs_service import apply_review
 
 router = APIRouter()
@@ -161,6 +161,12 @@ def search_term(
     if not result:
         return ""
 
+    seqSense = db.execute(
+        select(Sense)
+        .where(Sense.id.in_([row.idSense for row in result]))
+    ).scalars().all()
+    dctExamples = {sense.id: choice(sense.example).__dict__ for sense in seqSense if sense.example}
+
     resultsFlat = []
     for i in range(len(result)):
         resultsFlat += [dict()]
@@ -170,13 +176,20 @@ def search_term(
 
             if k in ("Lexeme", "Word"):
                 resultsFlat[i][k] = resultsFlat[i][k].replace(term, f"<b style='color:var(--highlight);'>{term}</b>")
+            elif k == "idSense":
+                rowExample = {"example": "", "translation": ""}
+                if v in dctExamples:
+                    rowExample["example"] = dctExamples[v]["example"]
+                    rowExample["translation"] = dctExamples[v]["translation"]
+                resultsFlat[i]["Example"] = rowExample["example"]
+                resultsFlat[i]["Translation"] = rowExample["translation"]
 
     return templates.TemplateResponse(
         request,
         "table.html",
         {
             "rows": resultsFlat,
-            "columns": ["Language", "Word", "PoS", "Sense"]
+            "columns": ["Language", "Word", "PoS", "Sense", "Example", "Translation"]
         }
     )
 
