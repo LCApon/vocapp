@@ -113,3 +113,10 @@ class ReviewDataUpdate(BaseModel):
     word: Optional[str] = Field(None, description="New word text")
     sense: Optional[str] = Field(None, description="New sense text")
     example: Optional[ExampleInput]
+
+class SearchDataUpdate(BaseModel):
+    coltype: str
+    idSense: int
+    idExample: Optional[int] = Field(None, description="ID of currently shown example in search")
+
+    valueNew: str = Field(..., description="New text for given column")

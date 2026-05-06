@@ -187,6 +187,8 @@
     let promptReview;
     let answerReview;
 
+    let wordLastSearch = null;
+
     let currentUTCDate;
 
     let elWord = document.getElementById('inputWordLookup');
@@ -381,6 +383,7 @@
         if (!data || data.length === 0) { el.innerHTML = '<div class="result">No results.</div>'; return; }
         tableWordLookup = data;
         el.innerHTML = `<div class="col"><div class="table-responsive">${tableWordLookup}</div></div>`;
+        wordLastSearch = word;
         elWord.value = null;
     }
 
@@ -405,6 +408,30 @@
             );
         }
     };
+
+    async function showEditTableRowEntry(data) {
+        const id = data.dataset.id;
+        const el = document.getElementById(id);
+        
+        el.hidden = !el.hidden;
+    };
+
+    async function editTableRowEntry(data) {
+        await post_json(
+            "/update/search",
+            {
+                coltype: data.dataset.coltype,
+                idSense: data.dataset.idsense,
+                idExample: data.dataset.idexample ? data.dataset.idexample : null,
+                valueNew: data.value
+            }
+        );
+        data.value = null;
+
+        const elWordSearch = document.getElementById('inputWordLookup');
+        elWordSearch.value = wordLastSearch;
+        lookupWord();
+    }
 
     // Add entries /////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -473,7 +500,6 @@
         const elSearch = document.getElementById('languageWordLookup');
 
         const optionsSelector = await get_html('/get/languages');
-        console.log(optionsSelector)
 
         elForm.innerHTML = optionsSelector;
         elSearch.innerHTML = optionsSelector;

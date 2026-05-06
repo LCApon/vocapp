@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from datetime import datetime as dt, timezone as tz, timedelta as td
 
 from database.session import get_db
-from database.model import Lexeme, Word, Sense, Review, Example, Language, tblSenseExample
-from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate, PartOfSpeech
+from database.model import Lexeme, Word, Sense, Review, Example, Language
+from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate, PartOfSpeech, SearchDataUpdate
 from typing import Optional
 from random import shuffle, choice
 # from service.fsrs_service import apply_review
@@ -77,8 +77,8 @@ def create_entry(
 
     return (lexeme, word, sense)
 
-@router.post("/entry/update", status_code=status.HTTP_200_OK)
-def update_entry(
+@router.post("/update/review", status_code=status.HTTP_200_OK)
+def update_entry_review(
     data: ReviewDataUpdate,
     db: Session = Depends(get_db),
 ):
@@ -101,6 +101,31 @@ def update_entry(
                 translation=data.example.translation
             )
         )
+    
+    db.commit()
+
+@router.post("/update/search", status_code=status.HTTP_200_OK)
+def update_entry_search(
+    data: SearchDataUpdate,
+    db: Session = Depends(get_db),
+):
+    sense = db.execute(select(Sense).where(Sense.id == data.idSense)).scalar_one()
+
+    if data.coltype == "Sense":
+        sense.sense = data.valueNew
+    elif data.coltype in ("Example", "Translation"):
+        if data.idExample:
+            example = db.execute(select(Example).where(Example.id == data.idExample)).scalar_one()
+            if data.coltype == "Example":
+                example.example = data.valueNew
+            else:
+                example.translation = data.valueNew
+        else:
+            if data.coltype == "Example":
+                example = Example(example=data.valueNew, translation="NOG INVULLEN", sense=[sense])
+            else:
+                example = Example(example="NOG INVULLEN", translation=data.valueNew, sense=[sense])
+            db.add(example)
     
     db.commit()
 
@@ -177,10 +202,13 @@ def search_term(
             if k in ("Lexeme", "Word"):
                 resultsFlat[i][k] = resultsFlat[i][k].replace(term, f"<b style='color:var(--highlight);'>{term}</b>")
             elif k == "idSense":
-                rowExample = {"example": "", "translation": ""}
+                rowExample = {"id": "", "example": "", "translation": ""}
                 if v in dctExamples:
+                    rowExample["id"] = dctExamples[v]["id"]
                     rowExample["example"] = dctExamples[v]["example"]
                     rowExample["translation"] = dctExamples[v]["translation"]
+                
+                resultsFlat[i]["idExample"] = rowExample["id"]    
                 resultsFlat[i]["Example"] = rowExample["example"]
                 resultsFlat[i]["Translation"] = rowExample["translation"]
 
