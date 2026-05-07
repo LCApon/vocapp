@@ -22,9 +22,6 @@ services:
         # # Rebuild the image if dependencies change by checking uv.lock
         - action: rebuild
           path: ./uv.lock
-    post_start:
-      - command: sh -c "uv sync --directory /app"
-        # working_dir: "/app"
 
   db:
     image: postgres:18.3-alpine
@@ -40,6 +37,7 @@ services:
       - vocapp-net
     ports:
       - 5432:5432
+    shm_size: 512mb
 
 networks:
   vocapp-net:

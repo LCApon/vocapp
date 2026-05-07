@@ -36,4 +36,4 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
 
-ENTRYPOINT ["uv", "run", "uvicorn", "main:vocapp", "--reload", "--host", "0.0.0.0", "--port", "9797"]
+ENTRYPOINT ["uv", "run", "uvicorn", "main:vocapp", "--reload", "--reload-include", "*.html", "--host", "0.0.0.0", "--port", "9797"]
