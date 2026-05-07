@@ -112,6 +112,7 @@ class ReviewDataUpdate(BaseModel):
     lexeme: Optional[str] = Field(None, description="New lexeme text")
     word: Optional[str] = Field(None, description="New word text")
     sense: Optional[str] = Field(None, description="New sense text")
+    note: Optional[str] = Field(None, description="New note text")
     example: Optional[ExampleInput]
 
 class SearchDataUpdate(BaseModel):

@@ -87,8 +87,10 @@ def update_entry_review(
     if data.sense:
         rl.sense.sense = data.sense
     
+    if data.note:
+        rl.sense.note = data.note
+
     if data.word:
-        
         rl.sense.word.word = data.word
 
     if data.lexeme:
@@ -305,7 +307,8 @@ def get_due_words(db: Session = Depends(get_db)):
             Lexeme.lexeme,
             Word.word,
             Sense.sense,
-            Sense.pos
+            Sense.pos,
+            Sense.note
         )
         .select_from(Review)
         .join(Sense)

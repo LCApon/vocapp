@@ -83,12 +83,13 @@
                                     <p id="review-pos" style='color:var(--highlight);'></p>
                                 </li>
                                 <li class="nav-item col">
-                                    <button hidden id="btn-edit-data" type="button" class="btn btn-outline-light" onclick="toggleEditEntryReview()" data-toggle="button" aria-pressed="false"><i class="fas fa-edit"></i></i></button>
+                                    <button hidden id="btn-edit-data" type="button" class="btn btn-outline-light" onclick="toggleEditEntryReview()" data-bs-toggle="button" aria-pressed="false"><i class="fas fa-edit"></i></button>
                                 </li>
                             </ul>
                         </div>
                         <div class="card-body">
                             <h4 id="review-prompt" class="card-title py-1"></h4>
+                            <h6 id="review-note" class="fst-italic fw-light"></h6>
                             <hr></hr>
                             <button id="btn-review-show" type="button" class="btn btn-light py-1" onclick="show_review()">Show</button>
                             <h5 hidden id="review-answer" class="card-subtitle py-1" style="font-weight:normal"></h5>
@@ -107,6 +108,7 @@
                             <input id="form-review-lexeme" class="form-control" type="text" placeholder="Lexeme">
                             <input id="form-review-word" class="form-control" type="text" placeholder="Word">
                             <input id="form-review-sense" class="form-control" type="text" placeholder="Sense">
+                            <input id="form-review-note" class="form-control" type="text" placeholder="Note">
 
                             <label for="form-review-example-sentence">Example sentence</label>
                             <input id="form-review-example-sentence" class="form-control" type="text" placeholder="Example sentence">                            
@@ -186,6 +188,7 @@
 
     let promptReview;
     let answerReview;
+    let noteReview;
 
     let wordLastSearch = null;
 
@@ -253,9 +256,12 @@
         if (dataReview.typeReview == 1) {
             promptReview = dataReview.lexeme;
             answerReview = dataReview.sense;
+            noteReview = dataReview.note ? dataReview.note : "";
+
         } else if (dataReview.typeReview == 2) {
             promptReview = dataReview.sense;
             answerReview = dataReview.lexeme;
+            noteReview = "";
         }
 
         currentIdReview = dataReview.id;
@@ -276,9 +282,11 @@
         // Fill card info
         const elReviewPos = document.getElementById('review-pos');
         const elReviewPrompt = document.getElementById('review-prompt');
+        const elReviewNote = document.getElementById('review-note');
         
         elReviewPos.innerHTML = dataReview.pos;
         elReviewPrompt.innerHTML = promptReview;
+        elReviewNote.innerHTML = noteReview;
         elReviewAnswer.innerHTML = answerReview;
         
         // Unhide items shown at start of reviewing card
@@ -309,13 +317,18 @@
 
     // Edit data for card on review
     async function toggleEditEntryReview() {
-        const el = document.getElementById('review-edit');
-        el.hidden = !el.hidden;
+        const elFormEdit = document.getElementById('review-edit');
+        elFormEdit.hidden = !elFormEdit.hidden;
+        
+        // const elBtnEdit = document.getElementById('btn-edit-data');
+        // elBtnEdit.aria.pressed = !elBtnEdit.aria-pressed;
+
     }
     async function editEntryReview() {
         const elLexeme = document.getElementById('form-review-lexeme');
         const elWord = document.getElementById('form-review-word');
         const elSense = document.getElementById('form-review-sense');
+        const elNote = document.getElementById('form-review-note');
         const elExSentence = document.getElementById('form-review-example-sentence');
         const elExTranslation = document.getElementById('form-review-example-translation');
 
@@ -327,6 +340,8 @@
             }
         }
 
+        console.log(elNote.value.trim())
+
         post_json(
             '/update/review',
             {
@@ -334,6 +349,7 @@
                 lexeme: elLexeme.value.trim() ? elLexeme.value.trim() : null,
                 word: elWord.value.trim() ? elWord.value.trim() : null,
                 sense: elSense.value.trim() ? elSense.value.trim() : null,
+                note: elNote.value.trim() ? elNote.value.trim() : null,
                 example: example
             }
         );
@@ -341,8 +357,11 @@
         elLexeme.value = null;
         elWord.value = null;
         elSense.value = null;
+        elNote.value = null;
         elExSentence.value = null;
         elExTranslation.value = null;
+
+        toggleEditEntryReview();
     }
 
     // Rate card-review
