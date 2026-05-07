@@ -88,8 +88,8 @@
                             </ul>
                         </div>
                         <div class="card-body">
-                            <h4 id="review-prompt" class="card-title py-1"></h5>
-                            <p class="card-text">---------------------------------------</p>
+                            <h4 id="review-prompt" class="card-title py-1"></h4>
+                            <hr></hr>
                             <button id="btn-review-show" type="button" class="btn btn-light py-1" onclick="show_review()">Show</button>
                             <h5 hidden id="review-answer" class="card-subtitle py-1" style="font-weight:normal"></h5>
                             <div hidden id="btn-review-rating" class="btn-group btn-group-lg offsetTop" role="group" aria-label="Rating buttons">
@@ -112,7 +112,7 @@
                             <input id="form-review-example-sentence" class="form-control" type="text" placeholder="Example sentence">                            
                             <input id="form-review-example-translation" class="form-control" type="text" placeholder="Example translation">
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="addEntry()">Submit</button>
+                        <button type="button" class="btn btn-primary" onclick="editEntryReview()">Submit</button>
                     </form>
                 </div>
             </div>
@@ -328,7 +328,7 @@
         }
 
         post_json(
-            '/entry/update',
+            '/update/review',
             {
                 idReview: currentIdReview,
                 lexeme: elLexeme.value.trim() ? elLexeme.value.trim() : null,
