@@ -2,7 +2,7 @@
     <thead>
         <tr>
             {% for col in columns %}
-            <th scope="col">{{ col }}</th>
+            <th scope="col">{{ col if not col == "Language" else "🌏" }}</th>
             {% endfor %}
             <th scope="col">Add to review</th>
             <th scope="col">Edit row</th>
@@ -29,7 +29,7 @@
                     data-id="{{ row.idLexeme }}_{{ row.idWord }}_{{ row.idSense }}"
                     onclick="showEditTableRowEntry(this)"
                 >
-                    .
+                    <i class="fas fa-edit"></i>
                 </button>
             </td>
         </tr>
