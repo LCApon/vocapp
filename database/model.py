@@ -85,7 +85,6 @@ class Example(Base):
     __tablename__ = "example"
     __table_args__ = (
         UniqueConstraint("example", "translation"),
-        Index("ix_example_id", "id"),
         {"schema": SCHEMA}
     )
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
@@ -167,7 +166,6 @@ class Review(Base):
     __tablename__ = "review"
     __table_args__ = (
         UniqueConstraint("idSense", "typeReview"),
-        Index("ix_review_id", "id"),
         Index("ix_review_idSense", "idSense"),
         {"schema": SCHEMA}
     )
@@ -260,7 +258,6 @@ class Sense(Base):
     """
     __tablename__ = "sense"
     __table_args__ = (
-        Index("ix_sense_id", "id"),
         Index("ix_sense_idWord", "idWord"),
         Index("ix_sense_sense", "sense"),
         {"schema": SCHEMA}
@@ -322,7 +319,6 @@ class Word(Base):
     __tablename__ = "word"
     __table_args__ = (
         UniqueConstraint("idLexeme", "word"),
-        Index("ix_word_id", "id"),
         Index("ix_word_word", "word"),
         {"schema": SCHEMA}
     )
@@ -352,7 +348,6 @@ class Lexeme(Base):
     __tablename__ = "lexeme"
     __table_args__ = (
         UniqueConstraint("lexeme", "idLanguage"),
-        Index("ix_lexeme_id", "id"),
         Index("ix_lexeme_lexeme", "lexeme"),
         Index("ix_lexeme_idLanguage", "idLanguage"),
         {"schema": SCHEMA}

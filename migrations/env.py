@@ -12,7 +12,7 @@ from config import settings
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.urlDatabase)
+config.set_main_option("sqlalchemy.url", settings.urlDatabaseLocal)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -53,7 +53,6 @@ def run_migrations_offline() -> None:
 
     with context.begin_transaction():
         context.run_migrations()
-
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
