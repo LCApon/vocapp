@@ -298,7 +298,7 @@
         elEditLexeme.value = dataReview.lexeme;
         elEditWord.value = dataReview.word;
         elEditSense.value = dataReview.sense;
-        elEditNote.value = noteReview;
+        elEditNote.innerHTML = noteReview;
         
         // Unhide items shown at start of reviewing card
         const elReviewBtnShow = document.getElementById('btn-review-show');
