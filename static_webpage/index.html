@@ -288,6 +288,17 @@
         elReviewPrompt.innerHTML = promptReview;
         elReviewNote.innerHTML = noteReview;
         elReviewAnswer.innerHTML = answerReview;
+
+        // Fill edit card info
+        const elEditLexeme = document.getElementById('form-review-lexeme');
+        const elEditWord = document.getElementById('form-review-word');
+        const elEditSense = document.getElementById('form-review-sense');
+        const elEditNote = document.getElementById('form-review-note');
+
+        elEditLexeme.value = dataReview.lexeme;
+        elEditWord.value = dataReview.word;
+        elEditSense.value = dataReview.sense;
+        elEditNote.value = noteReview;
         
         // Unhide items shown at start of reviewing card
         const elReviewBtnShow = document.getElementById('btn-review-show');
