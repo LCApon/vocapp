@@ -26,8 +26,8 @@ class Base(DeclarativeBase):
 tblSenseExample = Table(
     "sense_example",
     Base.metadata,
-    Column("idSense", ForeignKey(f"{SCHEMA}.sense.id"), primary_key=True),
-    Column("id_example", ForeignKey(f"{SCHEMA}.example.id"), primary_key=True),
+    Column("idSense", ForeignKey(f"{SCHEMA}.sense.id"), primary_key=True, index=True),
+    Column("idExample", ForeignKey(f"{SCHEMA}.example.id"), primary_key=True, index=True),
     schema=SCHEMA
 )
 
@@ -83,6 +83,11 @@ class Example(Base):
     """Example phrases and sentences, with their translation
     """
     __tablename__ = "example"
+    __table_args__ = (
+        UniqueConstraint("example", "translation"),
+        Index("ix_example_id", "id"),
+        {"schema": SCHEMA}
+    )
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
 
     example: Mapped[str]
@@ -128,9 +133,13 @@ class ReviewLog(Base):
     """Review log table, the complete history of all reviews done
     """
     __tablename__ = "reviewlog"
+    __table_args__ = (
+        Index("ix_reviewlog_idReview", "idReview"),
+        {"schema": SCHEMA}
+    )
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
 
-    id_review: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.review.id"))
+    idReview: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.review.id"))
 
     dtDue: Mapped[datetime] =  mapped_column(DateTime(timezone=True))
     dtReview: Mapped[datetime] =  mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -147,7 +156,7 @@ class ReviewLog(Base):
     ### Methods ###
     def __repr__(self) -> str:
         return (
-            f"ReviewLog({self.id}, id_review={self.id_review}, " +
+            f"ReviewLog({self.id}, idReview={self.idReview}, " +
             f"dtReview={self.dtReview}, rating={self.rating}, state={self.state}, " +
             f"stability={self.stability}, difficulty={self.difficulty})"
         )
@@ -159,6 +168,7 @@ class Review(Base):
     __table_args__ = (
         UniqueConstraint("idSense", "typeReview"),
         Index("ix_review_id", "id"),
+        Index("ix_review_idSense", "idSense"),
         {"schema": SCHEMA}
     )
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
@@ -192,7 +202,7 @@ class Review(Base):
     def update_review(self, rating, dtReview = datetime.now(timezone.utc)):
         try:
             rLog = ReviewLog(
-                id_review=self.id,
+                idReview=self.id,
                 dtDue=self.dtDue,
                 dtReview=dtReview,
                 rating=rating,
@@ -252,6 +262,7 @@ class Sense(Base):
     __table_args__ = (
         Index("ix_sense_id", "id"),
         Index("ix_sense_idWord", "idWord"),
+        Index("ix_sense_sense", "sense"),
         {"schema": SCHEMA}
     )
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
