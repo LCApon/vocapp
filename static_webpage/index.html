@@ -73,7 +73,7 @@
             </div>
             <div class="row offsetTop">
                 <div id="review-content" class="col">
-                    <div hidden id="review-card" class="card bg-dark text-white text-center mx-auto" style="max-width: 18rem; border-radius: 1em;">
+                    <div hidden id="review-card" class="card bg-dark text-white text-center mx-auto" style="max-width: 22em; border-radius: 1em;">
                         <div class="card-header">
                             <ul class="nav nav-pills card-header-pills">
                                 <li class="nav-item col">
@@ -107,12 +107,12 @@
                             <label for="form-review-lexeme">Lexeme, word and sense</label>
                             <input id="form-review-lexeme" class="form-control" type="text" placeholder="Lexeme">
                             <input id="form-review-word" class="form-control" type="text" placeholder="Word">
-                            <input id="form-review-sense" class="form-control" type="text" placeholder="Sense">
-                            <input id="form-review-note" class="form-control" type="text" placeholder="Note">
+                            <textarea id="form-review-sense" class="form-control" placeholder="Sense" rows="1"></textarea>
+                            <textarea id="form-review-note" class="form-control" placeholder="Note" rows="1"></textarea>
 
                             <label for="form-review-example-sentence">Example sentence</label>
-                            <input id="form-review-example-sentence" class="form-control" type="text" placeholder="Example sentence">                            
-                            <input id="form-review-example-translation" class="form-control" type="text" placeholder="Example translation">
+                            <textarea id="form-review-example-sentence" class="form-control" placeholder="Example sentence" rows="1"></textarea>
+                            <textarea id="form-review-example-translation" class="form-control" placeholder="Example translation" rows="1"></textarea>
                         </div>
                         <button type="button" class="btn btn-primary" onclick="editEntryReview()">Submit</button>
                     </form>
@@ -157,13 +157,13 @@
                         <label for="form-add-lexeme">Lexeme, word and sense</label>
                         <input id="form-add-lexeme" class="form-control mgBottom" type="text" placeholder="Lexeme" required>
                         <input id="form-add-word" class="form-control mgBottom" type="text" placeholder="Word (leave empty to use lexeme)">
-                        <input id="form-add-sense" class="form-control mgBottom" type="text" placeholder="Sense" required>
+                        <textarea id="form-add-sense" class="form-control mgBottom" placeholder="Sense" rows="1" required></textarea>
                         <input id="form-add-source" class="form-control mgBottom" type="text" placeholder="Source (optional)">
                     </div>
                     <div class="col">
                         <label for="form-add-example-sentence">Example sentence</label>
-                        <input id="form-add-example-sentence" class="form-control mgBottom" type="text" placeholder="Example sentence">                            
-                        <input id="form-add-example-translation" class="form-control mgBottom" type="text" placeholder="Example translation">
+                        <textarea id="form-add-example-sentence" class="form-control mgBottom" placeholder="Example sentence" rows="1"></textarea>
+                        <textarea id="form-add-example-translation" class="form-control mgBottom" placeholder="Example translation" rows="1"></textarea>
                         <input class="form-check-input" type="checkbox" value="" id="form-add-review" checked>
                         <label class="form-check-label" for="form-add-review">
                             Add to review?

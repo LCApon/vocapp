@@ -37,11 +37,11 @@
             {% for col in columns %}
             <td>
                 {% if col in ('Sense', 'Example', 'Translation') %}
-                <input type="text" class="form-control" onkeydown="if(event.key === 'Enter') editTableRowEntry(this)"
+                <textarea class="form-control" onkeydown="if(event.key === 'Enter') editTableRowEntry(this)"
                     data-idlexeme="{{ row.idLexeme }}" data-idword="{{ row.idWord }}" data-idsense="{{ row.idSense }}" data-idexample="{{ row.idExample }}"
                     data-coltype="{{ col }}"
                     value="{{ row[col] }}"
-                >
+                ></textarea>
                 {% endif %}
             </td>
             {% endfor %}
