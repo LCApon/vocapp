@@ -47,6 +47,7 @@ class PartOfSpeech(str, Enum):
     Conjunction    = "conj"
     Counter        = "counter"
     Determiner     = "det"
+    Expression     = "expr"
     Infix          = "infix"
     Noun           = "noun"
     Numeral        = "num"
