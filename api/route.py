@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Path
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from sqlalchemy import select, or_, case
+from sqlalchemy import select, or_, case, and_
 from sqlalchemy.orm import Session
 from datetime import datetime as dt, timezone as tz, timedelta as td
 
@@ -103,7 +103,11 @@ def update_entry_review(
                 translation=data.example.translation
             )
         )
-    
+
+    if not data.isActive:
+        for r in rl.sense.review:
+            r.isActive = data.isActive
+
     db.commit()
 
 @router.post("/update/search", status_code=status.HTTP_200_OK)
@@ -152,7 +156,7 @@ def search_term(
             ).label("Word"),
             Sense.pos.label("PoS"),
             Sense.sense.label("Sense"),
-            Review.id.is_not(None).label("isActive")
+            and_(Review.id.is_not(None), Review.isActive).label("isActive")
         )
         .select_from(Word)
         .join(Lexeme)
@@ -253,6 +257,7 @@ def get_pos_selector(
             "options": ctxt
         }
     )
+
 # Learning -------------------------------------------------------------------------------------------------------------
 @router.post("/add/review", status_code=status.HTTP_200_OK)
 def start_learning_translation(
@@ -262,8 +267,13 @@ def start_learning_translation(
 
     rExisting = db.execute(
         select(Review).where(Review.idSense == data.idSense)
-    ).all()
+    ).scalars().all()
+
     if rExisting:
+        for r in rExisting:
+            r.isActive = True
+
+        db.commit()
         return rExisting
     
     sData = db.execute(
@@ -315,7 +325,10 @@ def get_due_words(db: Session = Depends(get_db)):
         .join(Word)
         .join(Lexeme)
         .join(Language)
-        .where(Review.dtDue < dt.now(tz.utc))
+        .where(
+            Review.dtDue < dt.now(tz.utc),
+            Review.isActive
+        )
     )
     results = db.execute(stmt).all()
 

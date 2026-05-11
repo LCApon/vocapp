@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, UniqueConstraint, Integer, String, DateTime, Index, Table, Column, Identity
+from sqlalchemy import ForeignKey, UniqueConstraint, Integer, String, DateTime, Index, Table, Column, Identity, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from typing import List, Optional
@@ -173,6 +173,8 @@ class Review(Base):
 
     idSense: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.sense.id"))
     typeReview: Mapped[int]
+
+    isActive: Mapped[bool] = mapped_column(Boolean, default=True)
 
     dtStarted: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     dtDue: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

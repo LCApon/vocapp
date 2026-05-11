@@ -109,7 +109,9 @@
                             <input id="form-review-word" class="form-control" type="text" placeholder="Word">
                             <textarea id="form-review-sense" class="form-control" placeholder="Sense" rows="1"></textarea>
                             <textarea id="form-review-note" class="form-control" placeholder="Note" rows="1"></textarea>
-
+                            <input id="form-review-is-active" class="form-check-input" type="checkbox" value="" checked>
+                            <label class="form-check-label" for="form-add-review">Is active</label>
+                            <br>
                             <label for="form-review-example-sentence">Example sentence</label>
                             <textarea id="form-review-example-sentence" class="form-control" placeholder="Example sentence" rows="1"></textarea>
                             <textarea id="form-review-example-translation" class="form-control" placeholder="Example translation" rows="1"></textarea>
@@ -345,6 +347,7 @@
         const elNote = document.getElementById('form-review-note');
         const elExSentence = document.getElementById('form-review-example-sentence');
         const elExTranslation = document.getElementById('form-review-example-translation');
+        const elIsActive = document.getElementById('form-review-is-active');
 
         let example = null
         if (elExSentence & elExTranslation) {
@@ -362,7 +365,8 @@
                 word: elWord.value.trim() ? elWord.value.trim() : null,
                 sense: elSense.value.trim() ? elSense.value.trim() : null,
                 note: elNote.value.trim() ? elNote.value.trim() : null,
-                example: example
+                example: example,
+                isActive: elIsActive.checked
             }
         );
 
