@@ -66,7 +66,7 @@
     <div class="row offsetTop">
         <div class="col">
             <div class="row">
-                <h2 class="col">Review words</h2>
+                <h2 class="col"><span>Review words</span> <span id="counter-review"></span></h2>
                 <div class="col">
                     <button class="btn btn-outline-dark p-1 float-end" style="font-size: 13px" onclick="reschedule_review(currentIdReview)">Reschedule</button>
                 </div>
@@ -245,11 +245,14 @@
     // Card HTML makeup
     async function updateCard() {
         const el = document.getElementById('review-content');
+        const elCounter = document.getElementById('counter-review');
 
         if (cachedReviewDue.length > currentIdxReview) {
             dataReview = cachedReviewDue[currentIdxReview];
+            elCounter.innerHTML = `(${currentIdxReview}/${cachedReviewDue.length})`
         } else {
             el.innerHTML = '<div>No more cards due right now.</div>';
+            elCounter.innerHTML = ''
             return;
         }
 
