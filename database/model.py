@@ -4,7 +4,7 @@ from sqlalchemy.sql import func
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 
-from service.fsrs_service import get_cardUpdated, get_rescheduled_card
+from service.fsrs_service import get_card_updated, get_rescheduled_card
 from config import settings
 
 
@@ -211,8 +211,7 @@ class Review(Base):
                 difficulty=self.difficulty
             )
 
-            self.dtLastReview = dtReview
-            cardUpdate = get_cardUpdated(self, rating)
+            cardUpdate = get_card_updated(self, rating, dtReview)
 
         except Exception as e:
             print(f"Error composing review log and/or card update: {e}")
@@ -230,6 +229,7 @@ class Review(Base):
                 self.stability = cardUpdate.stability
                 self.difficulty = cardUpdate.difficulty
                 self.reps += 1
+                self.dtLastReview = cardUpdate.last_review
             except Exception as e:
                 print(f"Error updating review and/or log: {e}")
                 raise
