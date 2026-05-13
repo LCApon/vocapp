@@ -83,7 +83,7 @@
                                     <p id="review-pos" style='color:var(--highlight);'></p>
                                 </li>
                                 <li class="nav-item col">
-                                    <button hidden id="btn-edit-data" type="button" class="btn btn-outline-light" onclick="toggleEditEntryReview()" data-bs-toggle="button" aria-pressed="false"><i class="fas fa-edit"></i></button>
+                                    <button hidden id="btn-edit-data" type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#modalEditReviewData"><i class="fas fa-edit"></i></button>
                                 </li>
                             </ul>
                         </div>
@@ -93,6 +93,7 @@
                             <hr></hr>
                             <button id="btn-review-show" type="button" class="btn btn-light py-1" onclick="show_review()">Show</button>
                             <h5 hidden id="review-answer" class="card-subtitle py-1" style="font-weight:normal"></h5>
+                            <h6 hidden id="review-usage" class="fst-italic fw-light"></h6>
                             <div hidden id="btn-review-rating" class="btn-group btn-group-lg offsetTop" role="group" aria-label="Rating buttons">
                                 <button type="button" class="btn btn-danger" onclick="rateCard(2)">Hard</button>
                                 <button type="button" class="btn btn-primary" onclick="rateCard(3)">Good</button>
@@ -101,26 +102,41 @@
                         </div>
                     </div>
                 </div>
-                <div hidden id="review-edit" class="col">
-                    <form>
-                        <div class="form-group">
-                            <label for="form-review-lexeme">Lexeme, word and sense</label>
-                            <input id="form-review-lexeme" class="form-control" type="text" placeholder="Lexeme">
-                            <input id="form-review-word" class="form-control" type="text" placeholder="Word">
-                            <textarea id="form-review-sense" class="form-control" placeholder="Sense" rows="1"></textarea>
-                            <textarea id="form-review-note" class="form-control" placeholder="Note" rows="1"></textarea>
-                            <input id="form-review-is-active" class="form-check-input" type="checkbox" value="" checked>
-                            <label class="form-check-label" for="form-add-review">Is active</label>
-                            <br>
-                            <label for="form-review-example-sentence">Example sentence</label>
-                            <textarea id="form-review-example-sentence" class="form-control" placeholder="Example sentence" rows="1"></textarea>
-                            <textarea id="form-review-example-translation" class="form-control" placeholder="Example translation" rows="1"></textarea>
-                        </div>
-                        <button type="button" class="btn btn-primary" onclick="editEntryReview()">Submit</button>
-                    </form>
-                </div>
             </div>
         </div>
+    </div>
+
+    <!-- Modal for review edit -->
+    <div class="modal fade" id="modalEditReviewData" tabindex="-1" role="dialog" aria-labelledby="modalEditReviewData" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="modalEditReviewDataTitle">Edit card data</h5>
+        </div>
+        <div class="modal-body">
+            <form>
+                <div class="form-group">
+                    <label for="form-review-lexeme">Lexeme, word and sense data</label>
+                    <input id="form-review-lexeme" class="form-control" type="text" placeholder="Lexeme">
+                    <input id="form-review-word" class="form-control" type="text" placeholder="Word">
+                    <textarea id="form-review-sense" class="form-control" placeholder="Sense" rows="1"></textarea>
+                    <textarea id="form-review-note" class="form-control" placeholder="Note" rows="1"></textarea>
+                    <textarea id="form-review-usage" class="form-control" placeholder="Usage" rows="1"></textarea>
+                    <input id="form-review-is-active" class="form-check-input" type="checkbox" value="" checked>
+                    <label class="form-check-label" for="form-add-review">Is active</label>
+                    <br>
+                    <label for="form-review-example-sentence">Example sentence</label>
+                    <textarea id="form-review-example-sentence" class="form-control" placeholder="Example sentence" rows="1"></textarea>
+                    <textarea id="form-review-example-translation" class="form-control" placeholder="Example translation" rows="1"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" onclick="editEntryReview()" data-bs-dismiss="modal">Save changes</button>
+        </div>
+        </div>
+    </div>
     </div>
 
     <!-- Word search -->
@@ -275,14 +291,14 @@
         const elReviewBtnGroup = document.getElementById('btn-review-rating');
         const elReviewBtnAgain = document.getElementById('btn-rating-again');
         const elReviewBtnEdit = document.getElementById('btn-edit-data');
-        const elReviewEdit = document.getElementById('review-edit');
         const elReviewAnswer = document.getElementById('review-answer');
+        const elReviewUsage = document.getElementById('review-usage');
 
         elReviewBtnGroup.hidden = true;
         elReviewBtnAgain.hidden = true;
         elReviewBtnEdit.hidden = true;
-        elReviewEdit.hidden = true;
         elReviewAnswer.hidden = true;
+        elReviewUsage.hidden = true;
 
         // Fill card info
         const elReviewPos = document.getElementById('review-pos');
@@ -293,17 +309,22 @@
         elReviewPrompt.innerHTML = promptReview;
         elReviewNote.innerHTML = noteReview;
         elReviewAnswer.innerHTML = answerReview;
-
+        elReviewUsage.innerHTML = dataReview.usage;
+        
         // Fill edit card info
         const elEditLexeme = document.getElementById('form-review-lexeme');
         const elEditWord = document.getElementById('form-review-word');
         const elEditSense = document.getElementById('form-review-sense');
         const elEditNote = document.getElementById('form-review-note');
+        const elEditUsage = document.getElementById('form-review-usage');
+        const elEditIsActive = document.getElementById('form-review-is-active');
 
         elEditLexeme.value = dataReview.lexeme;
         elEditWord.value = dataReview.word;
         elEditSense.value = dataReview.sense;
         elEditNote.value = noteReview;
+        elEditUsage.value = dataReview.usage;
+        elEditIsActive.checked = true;
         
         // Unhide items shown at start of reviewing card
         const elReviewBtnShow = document.getElementById('btn-review-show');
@@ -318,13 +339,14 @@
     // Show review answer on button click
     async function show_review() {
         const elReviewAnswer = document.getElementById('review-answer');
+        const elReviewUsage = document.getElementById('review-usage');
         const elReviewBtnGroup = document.getElementById('btn-review-rating');
         const elReviewBtnShow = document.getElementById('btn-review-show');
         const elReviewBtnAgain = document.getElementById('btn-rating-again');
         const elReviewBtnEdit = document.getElementById('btn-edit-data');
         
-        
         elReviewAnswer.hidden = false;
+        elReviewUsage.hidden = false;
         elReviewBtnGroup.hidden = false;
         elReviewBtnAgain.hidden = false;
         elReviewBtnEdit.hidden = false;
@@ -332,19 +354,12 @@
     };
 
     // Edit data for card on review
-    async function toggleEditEntryReview() {
-        const elFormEdit = document.getElementById('review-edit');
-        elFormEdit.hidden = !elFormEdit.hidden;
-        
-        // const elBtnEdit = document.getElementById('btn-edit-data');
-        // elBtnEdit.aria.pressed = !elBtnEdit.aria-pressed;
-
-    }
     async function editEntryReview() {
         const elLexeme = document.getElementById('form-review-lexeme');
         const elWord = document.getElementById('form-review-word');
         const elSense = document.getElementById('form-review-sense');
         const elNote = document.getElementById('form-review-note');
+        const elUsage = document.getElementById('form-review-usage');
         const elExSentence = document.getElementById('form-review-example-sentence');
         const elExTranslation = document.getElementById('form-review-example-translation');
         const elIsActive = document.getElementById('form-review-is-active');
@@ -365,19 +380,11 @@
                 word: elWord.value.trim() ? elWord.value.trim() : null,
                 sense: elSense.value.trim() ? elSense.value.trim() : null,
                 note: elNote.value.trim() ? elNote.value.trim() : null,
+                usage: elUsage.value.trim() ? elUsage.value.trim() : null,
                 example: example,
                 isActive: elIsActive.checked
             }
         );
-
-        elLexeme.value = null;
-        elWord.value = null;
-        elSense.value = null;
-        elNote.value = null;
-        elExSentence.value = null;
-        elExTranslation.value = null;
-
-        toggleEditEntryReview();
     }
 
     // Rate card-review

@@ -114,6 +114,7 @@ class ReviewDataUpdate(BaseModel):
     word: Optional[str] = Field(None, description="New word text")
     sense: Optional[str] = Field(None, description="New sense text")
     note: Optional[str] = Field(None, description="New note text")
+    usage: Optional[str] = Field(None, description="New usage text")
     example: Optional[ExampleInput]
     isActive: bool = Field(True, description="Whether to keep review as active")
 

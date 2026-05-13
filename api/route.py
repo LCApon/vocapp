@@ -90,6 +90,9 @@ def update_entry_review(
     if data.note:
         rl.sense.note = data.note
 
+    if data.usage:
+        rl.sense.usage = data.usage
+
     if data.word:
         rl.sense.word.word = data.word
 
@@ -318,7 +321,8 @@ def get_due_words(db: Session = Depends(get_db)):
             Word.word,
             Sense.sense,
             Sense.pos,
-            Sense.note
+            Sense.note,
+            Sense.usage
         )
         .select_from(Review)
         .join(Sense)
