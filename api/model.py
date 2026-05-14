@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, cast
 from enum import Enum
 from fsrs import Rating
 
@@ -11,6 +11,7 @@ class LanguageISO639(str, Enum):
 
     def __new__(cls, iso639: str, idLanguage: int):
         obj: str = str.__new__(cls, iso639)
+        obj = cast("LanguageISO639", obj)
         obj._value_ = iso639
         obj.id = idLanguage
         return obj
@@ -26,6 +27,7 @@ class ReviewType(str, Enum):
 
     def __new__(cls, typeReview: str, idType: int):
         obj: str = str.__new__(cls, typeReview)
+        obj = cast("ReviewType", obj)
         obj._value_ = typeReview
         obj.id = idType
         return obj
@@ -93,6 +95,9 @@ class EntryCreate(BaseModel):
         True,
         description="Whether to immediately add the word to the review stack"
     )
+
+class LanguageInput(BaseModel):
+    iso639: LanguageISO639
 
 class ReviewAdd(BaseModel):
     idSense: int = Field(..., description="ID of the sense to add to reviews")

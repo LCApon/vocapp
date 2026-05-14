@@ -9,7 +9,7 @@ from datetime import datetime as dt, timezone as tz, timedelta as td
 from database.session import get_db
 from database.model import Lexeme, Word, Sense, Review, Example, Language
 from api.model import LanguageISO639, ReviewType, PartOfSpeech
-from api.model import EntryCreate, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate, SearchDataUpdate
+from api.model import EntryCreate, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate, SearchDataUpdate, LanguageInput
 from typing import Optional
 from random import shuffle, choice
 # from service.fsrs_service import apply_review
@@ -338,8 +338,11 @@ def start_learning_translation(
 
     return(lstReview)
 
-@router.get("/due", status_code=status.HTTP_200_OK)
-def get_due_words(db: Session = Depends(get_db)):
+@router.post("/due", status_code=status.HTTP_200_OK)
+def get_due_words(
+    data: LanguageInput,
+    db: Session = Depends(get_db)
+):
     stmt = (
         select(
             Review.id,
@@ -359,7 +362,8 @@ def get_due_words(db: Session = Depends(get_db)):
         .join(Language)
         .where(
             Review.dtDue < dt.now(tz.utc),
-            Review.isActive
+            Review.isActive,
+            Language.id == data.iso639.id
         )
     )
     results = db.execute(stmt).all()
