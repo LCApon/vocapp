@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, P
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select, or_, case, and_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload, joinedload
+from sqlalchemy.exc import NoResultFound
 from datetime import datetime as dt, timezone as tz, timedelta as td
 
 from database.session import get_db
 from database.model import Lexeme, Word, Sense, Review, Example, Language
-from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate, PartOfSpeech, SearchDataUpdate
+from api.model import LanguageISO639, ReviewType, PartOfSpeech
+from api.model import EntryCreate, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate, SearchDataUpdate
 from typing import Optional
 from random import shuffle, choice
 # from service.fsrs_service import apply_review
@@ -235,7 +237,6 @@ def get_languages_selector(
     request: Request,
     db: Session = Depends(get_db),
 ):
-
     results = db.execute(select(Language.iso639.label("value"), Language.language.label("label"))).all()
     resultsFlat = [{"value": "", "label": "Language"}] + [row._asdict() for row in results]
 
@@ -261,54 +262,81 @@ def get_pos_selector(
         }
     )
 
+@router.get("/get/reviewtypes", status_code=status.HTTP_200_OK)
+def get_review_types(
+    request: Request
+):
+    return {type.id: type.name for type in ReviewType}
+
 # Learning -------------------------------------------------------------------------------------------------------------
 @router.post("/add/review", status_code=status.HTTP_200_OK)
 def start_learning_translation(
     data: ReviewAdd,
     db: Session = Depends(get_db)
 ):
+    # Get Sense, with eager loading of neede relationships
+    try:
+        sense = db.execute(
+            select(Sense)
+            .where(Sense.id == data.idSense)
+            .options(
+                joinedload(Sense.word)
+                .joinedload(Word.lexeme)
+                .joinedload(Lexeme.language),
+                selectinload(Sense.review)
+            )
+        ).scalar_one()
+    except NoResultFound:
+        raise HTTPException(status_code=404, detail=f"Sense with id '{data.idSense}' not found")
+    except Exception:
+        raise HTTPException(status_code=404, detail="Unknown error occured during query for Sense related to review to add")
 
+    setReviewType = {i.id for i in ReviewType}
+
+    # Activate any existing reviews
     rExisting = db.execute(
         select(Review).where(Review.idSense == data.idSense)
     ).scalars().all()
 
-    if rExisting:
-        for r in rExisting:
-            r.isActive = True
+    lstReview = []
 
-        db.commit()
-        return rExisting
-    
-    sData = db.execute(
-        select(Sense).where(Sense.id == data.idSense)
-    )
+    for r in rExisting:
+        r.isActive = True
+        setReviewType.remove(r.typeReview)
+        lstReview += [r]
 
-    if not sData:
-        raise HTTPException(status_code=404, detail=f"Sense with id '{data.idSense}' not found")
 
+    dtNow = dt.now(tz=tz.utc)
     dctKwargs = {
-        "idSense": data.idSense,
-        "dtStarted": dt.now(tz=tz.utc),
-        "sense": sData.scalar_one()
+        "idSense": sense.id,
+        "dtStarted": dtNow,
+        "sense": sense
     }
 
-    rData = [
+    # Skip review for the reading if unnecessary
+    if not (sense.word.lexeme.language.iso639 in ("jp", "zh") and (sense.word.lexeme.lexeme != sense.word.word)):
+        setReviewType.remove(ReviewType("reading").id)
+
+    dctDueAdd = {
+        1: td(days=0),
+        2: td(days=7),
+        # 3: td(days=14), Cloze not yet implemented
+        4: td(days=0)
+    }
+
+    lstReview += [
         Review(
-            typeReview=1,
-            dtDue=dt.now(tz=tz.utc),
+            typeReview=idType,
+            dtDue=dtNow + dctDueAdd[idType],
             **dctKwargs
-        ),
-        Review(
-            typeReview=2,
-            dtDue=dt.now(tz=tz.utc) + td(days=7),
-            **dctKwargs
-        ),
+        )
+        for idType in setReviewType
     ]
 
-    db.add_all(rData)
+    db.add_all(lstReview)
     db.commit()
 
-    return(rData)
+    return(lstReview)
 
 @router.get("/due", status_code=status.HTTP_200_OK)
 def get_due_words(db: Session = Depends(get_db)):
@@ -319,9 +347,9 @@ def get_due_words(db: Session = Depends(get_db)):
             Language.language,
             Lexeme.lexeme,
             Word.word,
+            Review.note,
             Sense.sense,
             Sense.pos,
-            Sense.note,
             Sense.usage
         )
         .select_from(Review)

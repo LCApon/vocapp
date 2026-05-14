@@ -32,7 +32,8 @@ class ReviewType(str, Enum):
 
     Recognition = ("recognition", 1)
     Production  = ("production", 2)
-    Cloze       = ("cloze", 3)
+    # Cloze       = ("cloze", 3)
+    Reading     = ("reading", 4)
 
 # Parts of speech
 class PartOfSpeech(str, Enum):

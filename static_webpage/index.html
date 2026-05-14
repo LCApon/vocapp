@@ -71,30 +71,50 @@
                     <button class="btn btn-outline-dark p-1 float-end" style="font-size: 13px" onclick="reschedule_review(currentIdReview)">Reschedule</button>
                 </div>
             </div>
-            <div class="row offsetTop">
+            <div class="row">
                 <div id="review-content" class="col">
                     <div hidden id="review-card" class="card bg-dark text-white text-center mx-auto" style="max-width: 22em; border-radius: 1em;">
+                        <!-- Header with PoS and extra functionality -->
                         <div class="card-header">
-                            <ul class="nav nav-pills card-header-pills">
-                                <li class="nav-item col">
+                            <div class="row align-items-center">
+                                <div class="col">
                                     <button hidden id="btn-rating-again" type="button" class="btn btn-outline-light" onclick="rateCard(1)"><i class="fas fa-redo"></i></button>
-                                </li>
-                                <li class="nav-item col">
-                                    <p id="review-pos" style='color:var(--highlight);'></p>
-                                </li>
-                                <li class="nav-item col">
+                                </div>
+                                <div class="col">
+                                    <p id="review-pos" class="" style='color:var(--highlight);'></p>
+                                </div>
+                                <div class="col">
                                     <button hidden id="btn-edit-data" type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#modalEditReviewData"><i class="fas fa-edit"></i></button>
-                                </li>
-                            </ul>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- Core content  -->
                         <div class="card-body">
-                            <h4 id="review-prompt" class="card-title py-1"></h4>
+                            <h4 id="review-prompt" class="card-title"></h4>
                             <h6 id="review-note" class="fst-italic fw-light"></h6>
                             <hr></hr>
-                            <button id="btn-review-show" type="button" class="btn btn-light py-1" onclick="show_review()">Show</button>
                             <h5 hidden id="review-answer" class="card-subtitle py-1" style="font-weight:normal"></h5>
                             <h6 hidden id="review-usage" class="fst-italic fw-light"></h6>
-                            <div hidden id="btn-review-rating" class="btn-group btn-group-lg offsetTop" role="group" aria-label="Rating buttons">
+                        </div>
+
+                        <!-- Footer with extra info and show answer button -->
+                        <div class="card-footer pb-3" id="card-footer-pre">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                </div>
+                                <div class="col">
+                                    <button id="btn-review-show" type="button" class="btn btn-light py-1" onclick="show_review()">Show</button>
+                                </div>
+                                <div class="col">
+                                    <p id="review-type" class="mb-0 fst-italic fw-light"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer for after showing answer -->
+                        <div hidden class="card-footer pb-3" id="card-footer-post">
+                            <div id="btn-review-rating" class="btn-group btn-group-lg offsetTop" role="group" aria-label="Rating buttons">
                                 <button type="button" class="btn btn-danger" onclick="rateCard(2)">Hard</button>
                                 <button type="button" class="btn btn-primary" onclick="rateCard(3)">Good</button>
                                 <button type="button" class="btn btn-success" onclick="rateCard(4)">Easy</button>
@@ -204,6 +224,8 @@
     let currentIdxReview = 0;
     let cachedReviewDue = null;
 
+    let objReviewTypes = null;
+
     let promptReview;
     let answerReview;
     let noteReview;
@@ -277,18 +299,23 @@
         if (dataReview.typeReview == 1) {
             promptReview = dataReview.lexeme;
             answerReview = dataReview.sense;
-            noteReview = dataReview.note ? dataReview.note : "";
-
         } else if (dataReview.typeReview == 2) {
             promptReview = dataReview.sense;
             answerReview = dataReview.lexeme;
-            noteReview = "";
+        } else if (dataReview.typeReview == 4) {
+            promptReview = dataReview.lexeme;
+            answerReview = dataReview.word;
+        } else {
+            // Other types yet to be implemented
+            currentIdxReview = currentIdxReview + 1;
+            updateCard();
+            return null
         }
 
         currentIdReview = dataReview.id;
 
         // Hide items not shown at start of reviewing card
-        const elReviewBtnGroup = document.getElementById('btn-review-rating');
+        const elReviewBtnGroup = document.getElementById('card-footer-post');
         const elReviewBtnAgain = document.getElementById('btn-rating-again');
         const elReviewBtnEdit = document.getElementById('btn-edit-data');
         const elReviewAnswer = document.getElementById('review-answer');
@@ -304,10 +331,12 @@
         const elReviewPos = document.getElementById('review-pos');
         const elReviewPrompt = document.getElementById('review-prompt');
         const elReviewNote = document.getElementById('review-note');
+        const elReviewType = document.getElementById('review-type');
         
         elReviewPos.innerHTML = dataReview.pos;
         elReviewPrompt.innerHTML = promptReview;
-        elReviewNote.innerHTML = noteReview;
+        elReviewNote.innerHTML = dataReview.note;
+        elReviewType.innerHTML = objReviewTypes[dataReview.typeReview];
         elReviewAnswer.innerHTML = answerReview;
         elReviewUsage.innerHTML = dataReview.usage;
         
@@ -322,15 +351,15 @@
         elEditLexeme.value = dataReview.lexeme;
         elEditWord.value = dataReview.word;
         elEditSense.value = dataReview.sense;
-        elEditNote.value = noteReview;
+        elEditNote.value = dataReview.note;
         elEditUsage.value = dataReview.usage;
         elEditIsActive.checked = true;
         
         // Unhide items shown at start of reviewing card
-        const elReviewBtnShow = document.getElementById('btn-review-show');
+        const elCardFooter = document.getElementById('card-footer-pre');
         const elReviewCard = document.getElementById('review-card');
         
-        elReviewBtnShow.hidden = false;
+        elCardFooter.hidden = false;
         elReviewCard.hidden = false;
 
         currentIdxReview = currentIdxReview + 1
@@ -338,10 +367,10 @@
 
     // Show review answer on button click
     async function show_review() {
+        // Unhide answer and rating
         const elReviewAnswer = document.getElementById('review-answer');
         const elReviewUsage = document.getElementById('review-usage');
-        const elReviewBtnGroup = document.getElementById('btn-review-rating');
-        const elReviewBtnShow = document.getElementById('btn-review-show');
+        const elReviewBtnGroup = document.getElementById('card-footer-post');
         const elReviewBtnAgain = document.getElementById('btn-rating-again');
         const elReviewBtnEdit = document.getElementById('btn-edit-data');
         
@@ -350,7 +379,10 @@
         elReviewBtnGroup.hidden = false;
         elReviewBtnAgain.hidden = false;
         elReviewBtnEdit.hidden = false;
-        elReviewBtnShow.hidden = true;
+        
+        // Hide pre-footer
+        const elCardFooterPre = document.getElementById('card-footer-pre');
+        elCardFooterPre.hidden = true;
     };
 
     // Edit data for card on review
@@ -556,8 +588,13 @@
         el.innerHTML = optionsSelector;
     }
 
-    getLanguagesSelector()
-    getPosSelector()
-    getReviews()
+    async function getReviewTypes(){
+        objReviewTypes = await get_json('/get/reviewtypes');
+    }
+
+    getLanguagesSelector();
+    getPosSelector();
+    getReviewTypes();
+    getReviews();
 
 </script>
