@@ -12,6 +12,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
+    <!-- Personal scripts -->
+     <script src="http_methods.js"></script>
+
     <!-- Personal style -->
     <style>
         :root {
@@ -51,6 +54,27 @@
             outline: none;
             box-shadow: none;
         }
+
+        .flashcard-text {
+            display: block;
+            margin-left: 0;
+            margin-right: 0;
+            margin-top: .5em;
+            margin-bottom: .5em;
+        }
+
+        .flashcard-text-note {
+            font-size: 1.1em;
+        }
+        
+        .flashcard-text-sense {
+            font-size: 1.3em;
+        }
+        
+        .flashcard-text-word {
+            font-size: 1.7em;
+            font-weight: 500;
+        }
     </style>
 </head>
 
@@ -74,12 +98,12 @@
             <div class="row">
                 <h2 class="col"><span>Review words</span> <span id="counter-review"></span></h2>
                 <div class="col">
-                    <button class="btn btn-outline-dark p-1 float-end" style="font-size: 13px" onclick="reschedule_review(currentIdReview)">Reschedule</button>
+                    <button class="btn btn-outline-dark p-1 float-end" style="font-size: 13px" onclick="reschedule_review()">Reschedule</button>
                 </div>
             </div>
             <div class="row">
-                <div id="review-content" class="col">
-                    <div hidden id="review-card" class="card bg-dark text-white text-center mx-auto" style="max-width: 22em; border-radius: 1em;">
+                <div hidden id="review-content" class="col">
+                    <div id="review-card" class="card bg-dark text-white text-center mx-auto" style="max-width: 22em; border-radius: 1em;">
                         <!-- Header with PoS and extra functionality -->
                         <div class="card-header">
                             <div class="row align-items-center">
@@ -97,11 +121,11 @@
 
                         <!-- Core content  -->
                         <div class="card-body">
-                            <h4 id="review-prompt" class="card-title"></h4>
-                            <h6 id="review-note" class="fst-italic fw-light"></h6>
+                            <p id="review-cue"></p>
+                            <p id="review-note" class="flashcard-text flashcard-text-note fst-italic fw-light"></p>
                             <hr></hr>
-                            <h5 hidden id="review-answer" class="card-subtitle py-1" style="font-weight:normal"></h5>
-                            <h6 hidden id="review-usage" class="fst-italic fw-light"></h6>
+                            <p hidden id="review-answer"></p>
+                            <p hidden id="review-usage" class="flashcard-text flashcard-text-note fst-italic fw-light"></p>
                         </div>
 
                         <!-- Footer with extra info and show answer button -->
@@ -218,204 +242,220 @@
 <!-- Script ----------------------------------------------------------------------------------------------------------->
 <script>
     const API = '/api';
-    let currentCard = null;
-    let currentIdReview = null;
-    let currentIdxReview = 0;
-    let cachedReviewDue = null;
+    const cardCurrent = {}
+    const el = {}
 
-    let objReviewTypes = null;
+    let objReviewTypes;
+    let cachedReviewDue;
+    let wordLastSearch;
 
-    let promptReview;
-    let answerReview;
-    let noteReview;
+    // Simplified ID query function
+    const $ = id => document.getElementById(id);
 
-    let wordLastSearch = null;
+    // Init
+    async function init() {
+        el.language = $('selectorLanguage')
 
-    let currentUTCDate;
+        el.card = {
+            header: {
+                btnAgain: $('btn-rating-again'),
+                pos: $('review-pos'),
+                btnEdit: $('btn-edit-data'),
+            },
+            body: {
+                cue: $('review-cue'),
+                note: $('review-note'),
+                answer: $('review-answer'),
+                usage: $('review-usage'),
+            },
+            footer: {
+                pre: $('card-footer-pre'),
+                contentPre: {
+                    btnShow: $('btn-review-show'),
+                    typeReview: $('review-type')
+                },
+                post: $('card-footer-post'),
+            }
+        };
 
-    let elWord = document.getElementById('inputWordLookup');
-    elWord.value = null;
+        el.review = {
+            content: $('review-content'),
+            contentEmpty: $('review-content-empty'),
+            counter: $('counter-review'),
+            edit: {
+                lexeme: $('form-review-lexeme'),
+                word: $('form-review-word'),
+                sense: $('form-review-sense'),
+                note: $('form-review-note'),
+                usage: $('form-review-usage'),
+                isActive: $('form-review-is-active'),
+                sentenceExample: $('form-review-example-sentence'),
+                translationExample: $('form-review-example-translation'),
+            }
+        };
 
-    // Generic get and post functions
-    async function get_html(path) {
-        const r = await fetch(API + path);
-        return r.ok ? r.text() : null;
-    }
+        el.lookup = {
+            word: $('inputWordLookup'),
+            results: $('lookup-results')
+        };
 
-    async function post_json(path, body) {
-        const r = await fetch(API + path, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-        });
+        el.entry = {}
 
-        return r.ok ? r.json() : null;
-    }
+        el.entry.add = {
+            lexeme: $('form-add-lexeme'),
+            word: $('form-add-word'),
+            sense: $('form-add-sense'),
+            pos: $('form-add-sense-pos'),
+            source: $('form-add-source'),
+            sense: $('form-add-sense'),
+            addReview: $('form-add-review'),
+            sentenceExample: $('form-add-example-sentence'),
+            translationExample: $('form-add-example-translation'),
+        }
 
-    async function get_json(path) {
-        const r = await fetch(API + path);
-        return r.ok ? r.json() : null;
+        await getSetLanguagesSelector();
+        await getSetPosSelector();
+        objReviewTypes = await getReviewTypes();
+        await getReviews();
     }
 
     // Review page /////////////////////////////////////////////////////////////////////////////////////////////////////
-
     // Get reviewable cards
     async function getReviews() {
-        currentIdxReview = 0
+        cardCurrent.idx = 0
+        const lang = el.language.value;
 
-        const lang = document.getElementById('selectorLanguage').value;
         if (!lang){
             return;
         }
 
         const data = await post_json('/due', {'iso639': lang});
-        const el = document.getElementById('review-content');
-        const elEmpty = document.getElementById('review-content-empty');
         if (!data || data.length === 0) {
-            el.hidden = true;
-            elEmpty.hidden = false;
+            el.review.content.hidden = true;
+            el.review.contentEmpty.hidden = false;
             return;
         } else {
-            el.hidden = false;
-            elEmpty.hidden = true;
+            el.review.content.hidden = false;
+            el.review.contentEmpty.hidden = true;
         }
 
         cachedReviewDue = data;
 
-        updateCard()
+        updateCard();
     }
 
     // Reschedule review(s)
-    async function reschedule_review(id) {
+    async function reschedule_review() {
         post_json(
             "/reschedule",
-            {id: id}
+            {}
         );
     }
 
     // Card HTML makeup
     async function updateCard() {
-        const el = document.getElementById('review-content');
-        const elCounter = document.getElementById('counter-review');
+        const elCounter = $('counter-review');
 
-        if (cachedReviewDue.length > currentIdxReview) {
-            dataReview = cachedReviewDue[currentIdxReview];
-            elCounter.innerHTML = `(${currentIdxReview}/${cachedReviewDue.length})`;
+        if (cachedReviewDue.length > cardCurrent.idx) {
+            dataReview = cachedReviewDue[cardCurrent.idx];
+            el.review.counter.innerHTML = `(${cardCurrent.idx}/${cachedReviewDue.length})`;
+            cardCurrent.id = dataReview.id;
         } else {
-            el.innerHTML = '<div>No more cards due right now.</div>';
-            elCounter.innerHTML = ''
+            el.review.content.hidden = true;
+            el.review.contentEmpty.hidden = false;
+            el.review.counter.innerHTML = ''
             return;
         }
+        
+        const footer = el.card.footer
+        const header = el.card.header
+        const body = el.card.body
 
+        // Hide items not shown at start of reviewing card
+        footer.post.hidden = true;
+        header.btnAgain.hidden = true;
+        header.btnEdit.hidden = true;
+
+        body.answer.hidden = true;
+        body.usage.hidden = true;
+
+        // Prepare card content data based on review type
         if (dataReview.typeReview == 1) {
-            promptReview = dataReview.lexeme;
-            answerReview = dataReview.sense;
+            cardCurrent.cue = dataReview.lexeme;
+            cardCurrent.answer = dataReview.sense;
+            classCue = "flashcard-text flashcard-text-word"
+            classAnswer = "flashcard-text flashcard-text-sense"
         } else if (dataReview.typeReview == 2) {
-            promptReview = dataReview.sense;
+            cardCurrent.cue = dataReview.sense;
             if (dataReview.lexeme != dataReview.word) {
-                answerReview = `${dataReview.lexeme} (${dataReview.word})`;
+                cardCurrent.answer = `${dataReview.lexeme} (${dataReview.word})`;
             } else {
-                answerReview = dataReview.lexeme;
+                cardCurrent.answer = dataReview.lexeme;
             }
+            classCue = "flashcard-text flashcard-text-sense"
+            classAnswer = "flashcard-text flashcard-text-word"
         } else if (dataReview.typeReview == 4) {
-            promptReview = dataReview.lexeme;
-            answerReview = dataReview.word;
+            cardCurrent.cue = dataReview.lexeme;
+            cardCurrent.answer = dataReview.word;
+            classCue = "flashcard-text flashcard-text-word"
+            classAnswer = "flashcard-text flashcard-text-word"
         } else {
             // Other types yet to be implemented
-            currentIdxReview = currentIdxReview + 1;
+            cardCurrent.idx = cardCurrent.idx + 1;
             updateCard();
             return null
         }
 
-        currentIdReview = dataReview.id;
-
-        // Hide items not shown at start of reviewing card
-        const elReviewBtnGroup = document.getElementById('card-footer-post');
-        const elReviewBtnAgain = document.getElementById('btn-rating-again');
-        const elReviewBtnEdit = document.getElementById('btn-edit-data');
-        const elReviewAnswer = document.getElementById('review-answer');
-        const elReviewUsage = document.getElementById('review-usage');
-
-        elReviewBtnGroup.hidden = true;
-        elReviewBtnAgain.hidden = true;
-        elReviewBtnEdit.hidden = true;
-        elReviewAnswer.hidden = true;
-        elReviewUsage.hidden = true;
-
         // Fill card info
-        const elReviewPos = document.getElementById('review-pos');
-        const elReviewPrompt = document.getElementById('review-prompt');
-        const elReviewNote = document.getElementById('review-note');
-        const elReviewType = document.getElementById('review-type');
+        header.pos.innerHTML = dataReview.pos;
+        body.cue.innerHTML = cardCurrent.cue;
+        body.cue.className = classCue;
+        body.note.innerHTML = dataReview.note;
+        body.answer.innerHTML = cardCurrent.answer;
+        body.answer.className = classAnswer;
+        body.usage.innerHTML = dataReview.usage;
         
-        elReviewPos.innerHTML = dataReview.pos;
-        elReviewPrompt.innerHTML = promptReview;
-        elReviewNote.innerHTML = dataReview.note;
-        elReviewType.innerHTML = objReviewTypes[dataReview.typeReview];
-        elReviewAnswer.innerHTML = answerReview;
-        elReviewUsage.innerHTML = dataReview.usage;
+        footer.contentPre.typeReview.innerHTML = objReviewTypes[dataReview.typeReview];
         
         // Fill edit card info
-        const elEditLexeme = document.getElementById('form-review-lexeme');
-        const elEditWord = document.getElementById('form-review-word');
-        const elEditSense = document.getElementById('form-review-sense');
-        const elEditNote = document.getElementById('form-review-note');
-        const elEditUsage = document.getElementById('form-review-usage');
-        const elEditIsActive = document.getElementById('form-review-is-active');
-
-        elEditLexeme.value = dataReview.lexeme;
-        elEditWord.value = dataReview.word;
-        elEditSense.value = dataReview.sense;
-        elEditNote.value = dataReview.note;
-        elEditUsage.value = dataReview.usage;
-        elEditIsActive.checked = true;
+        const edit = el.review.edit
+        edit.lexeme.value = dataReview.lexeme;
+        edit.word.value = dataReview.word;
+        edit.sense.value = dataReview.sense;
+        edit.note.value = dataReview.note;
+        edit.usage.value = dataReview.usage;
+        edit.isActive.checked = true;
         
         // Unhide items shown at start of reviewing card
-        const elCardFooter = document.getElementById('card-footer-pre');
-        const elReviewCard = document.getElementById('review-card');
-        
-        elCardFooter.hidden = false;
-        elReviewCard.hidden = false;
+        footer.pre.hidden = false;
+        el.review.content.hidden = false;
 
-        currentIdxReview = currentIdxReview + 1
+        cardCurrent.idx = cardCurrent.idx + 1
     }
 
     // Show review answer on button click
     async function show_review() {
         // Unhide answer and rating
-        const elReviewAnswer = document.getElementById('review-answer');
-        const elReviewUsage = document.getElementById('review-usage');
-        const elReviewBtnGroup = document.getElementById('card-footer-post');
-        const elReviewBtnAgain = document.getElementById('btn-rating-again');
-        const elReviewBtnEdit = document.getElementById('btn-edit-data');
-        
-        elReviewAnswer.hidden = false;
-        elReviewUsage.hidden = false;
-        elReviewBtnGroup.hidden = false;
-        elReviewBtnAgain.hidden = false;
-        elReviewBtnEdit.hidden = false;
+        const card = el.card
+        card.body.answer.hidden = false;
+        card.body.usage.hidden = false;
+        card.footer.post.hidden = false;
+        card.header.btnAgain.hidden = false;
+        card.header.btnEdit.hidden = false;
         
         // Hide pre-footer
-        const elCardFooterPre = document.getElementById('card-footer-pre');
-        elCardFooterPre.hidden = true;
+        card.footer.pre.hidden = true;
     };
 
     // Edit data for card on review
     async function editEntryReview() {
-        const elLexeme = document.getElementById('form-review-lexeme');
-        const elWord = document.getElementById('form-review-word');
-        const elSense = document.getElementById('form-review-sense');
-        const elNote = document.getElementById('form-review-note');
-        const elUsage = document.getElementById('form-review-usage');
-        const elExSentence = document.getElementById('form-review-example-sentence');
-        const elExTranslation = document.getElementById('form-review-example-translation');
-        const elIsActive = document.getElementById('form-review-is-active');
+        const edit = el.review.edit
 
         let example = null
-        if (elExSentence & elExTranslation) {
+        if (edit.sentenceExample & edit.translationExample) {
             example = {
-                example: elExSentence.value.trim(),
-                translation: elExTranslation.value.trim()
+                example: edit.sentenceExample.value.trim(),
+                translation: edit.translationExample.value.trim()
             }
         }
 
@@ -423,13 +463,13 @@
             '/update/review',
             {
                 idReview: currentIdReview,
-                lexeme: elLexeme.value.trim() ? elLexeme.value.trim() : null,
-                word: elWord.value.trim() ? elWord.value.trim() : null,
-                sense: elSense.value.trim() ? elSense.value.trim() : null,
-                note: elNote.value.trim() ? elNote.value.trim() : null,
-                usage: elUsage.value.trim() ? elUsage.value.trim() : null,
+                lexeme: edit.lexeme.value.trim() ? edit.lexeme.value.trim() : null,
+                word: edit.word.value.trim() ? edit.word.value.trim() : null,
+                sense: edit.sense.value.trim() ? edit.sense.value.trim() : null,
+                note: edit.note.value.trim() ? edit.note.value.trim() : null,
+                usage: edit.usage.value.trim() ? edit.usage.value.trim() : null,
                 example: example,
-                isActive: elIsActive.checked
+                isActive: edit.isActive.checked
             }
         );
     }
@@ -441,13 +481,13 @@
         post_json(
             "/submit/review",
             {
-                idReview: currentIdReview,
+                idReview: cardCurrent.id,
                 dtReview: currentUTCDate,
                 rating: rating
             }
         );
 
-        currentIdReview = null;
+        cardCurrent.id = null;
 
         updateCard();
     }
@@ -456,24 +496,32 @@
     
     // Word lookup
     async function lookupWord() {
-        const elWord = document.getElementById('inputWordLookup');
-        const lang = document.getElementById('selectorLanguage').value;
-        
-        const word = elWord.value.trim()
+        const lang = el.language.value;
+        const word = el.lookup.word.value.trim()
 
-        const el = document.getElementById('lookup-results');
-        if (!word) { el.innerHTML = '<div class="result"></div>'; return; }
+        if (!word) {
+            el.lookup.results.innerHTML = '<div class="result"></div>';
+            return;
+        }
 
+        // Add language if selected
         let query = ''
         if (lang) query = '?iso639=' + encodeURIComponent(lang)
 
+        // Get data
         const data = await get_html('/search/term/' + encodeURIComponent(word) + query);
 
-        if (!data || data.length === 0) { el.innerHTML = '<div class="result">No results.</div>'; return; }
+        if (!data || data.length === 0) {
+            el.lookup.results.innerHTML = '<div class="result">No results.</div>';
+            return;
+        }
+
         tableWordLookup = data;
-        el.innerHTML = `<div class="col"><div class="table-responsive">${tableWordLookup}</div></div>`;
+        el.lookup.results.innerHTML = `<div class="col"><div class="table-responsive result">${tableWordLookup}</div></div>`;
+
+        // Save the last searched word, for use after page refresh when editing a row
         wordLastSearch = word;
-        elWord.value = null;
+        el.lookup.word.value = null;
     }
 
     // Add to review when 'Add' button is clicked
@@ -499,10 +547,10 @@
     };
 
     async function showEditTableRowEntry(data) {
-        const id = data.dataset.id;
-        const el = document.getElementById(id);
+        const idRow = data.dataset.id;
+        const elRow = $(idRow);
         
-        el.hidden = !el.hidden;
+        elRow.hidden = !elRow.hidden;
     };
 
     async function editTableRowEntry(data) {
@@ -517,15 +565,14 @@
         );
         data.value = null;
 
-        const elWordSearch = document.getElementById('inputWordLookup');
-        elWordSearch.value = wordLastSearch;
+        el.lookup.word.value = wordLastSearch;
         lookupWord();
     }
 
     // Add entries /////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Add entry
-    document.getElementById('form-add-entry').addEventListener('submit', function(event) {
+    $('form-add-entry').addEventListener('submit', function(event) {
         event.preventDefault(); // stop the page reload
 
         // Perform built-in validation
@@ -538,81 +585,65 @@
     });
 
     async function addEntry() {
-        const elIso639 = document.getElementById('selectorLanguage');
-        const elLexeme = document.getElementById('form-add-lexeme');
-        const elWord = document.getElementById('form-add-word');
-        const elSense = document.getElementById('form-add-sense');
-        const elSensePos = document.getElementById('form-add-sense-pos');
-        const elSource = document.getElementById('form-add-source');
-        const elExSentence = document.getElementById('form-add-example-sentence');
-        const elExTranslation = document.getElementById('form-add-example-translation');
-        const elAddToReview = document.getElementById('form-add-review');
+        const elAdd = el.entry.add
 
         let example = null
-        if (elExSentence & elExTranslation) {
+        if (elAdd.sentenceExample & elAdd.translationExample) {
             example = {
-                example: elExSentence.value.trim(),
-                translation: elExTranslation.value.trim()
+                example: elAdd.sentenceExample.value.trim(),
+                translation: elAdd.translationExample.value.trim()
             }
         }
 
         r = post_json(
             '/entry/create',
             {
-                iso639: elIso639.value,
-                lexeme: elLexeme.value.trim(),
-                word: elWord.value.trim() ? elWord.value.trim() : elLexeme.value.trim(),
-                sense: elSense.value.trim(),
-                pos: elSensePos.value,
-                source: elSource.value.trim() ? elSource.value.trim() : null,
+                iso639: el.language.value,
+                lexeme: elAdd.lexeme.value.trim(),
+                word: elAdd.word.value.trim() ? elWord.value.trim() : elLexeme.value.trim(),
+                sense: elAdd.sense.value.trim(),
+                pos: elAdd.pos.value,
+                source: elAdd.source.value.trim() ? elSource.value.trim() : null,
                 example: example,
-                addToReview: elAddToReview.checked
+                addToReview: elAdd.addReview.checked
             }
         );
 
-        elIso639.selectedIndex = 0;
-        elSensePos.selectedIndex = 0;
-        elLexeme.value = null;
-        elWord.value = null;
-        elSense.value = null;
-        elSource.value = null;
-        elExSentence.value = null;
-        elExTranslation.value = null;
+        elAdd.pos.selectedIndex = 0;
+        elAdd.lexeme.value = null;
+        elAdd.word.value = null;
+        elAdd.sense.value = null;
+        elAdd.source.value = null;
+        elAdd.sentenceExample.value = null;
+        elAdd.translationExample.value = null;
     }
 
     // Set language on page ////////////////////////////////////////////////////////////////////////////////////////////
-    document.getElementById('selectorLanguage').addEventListener('change', function(event) {
-        const elCounter = document.getElementById('counter-review');
-        elCounter.innerHTML = ""
+    $('selectorLanguage').addEventListener('change', function(event) {
+        el.review.counter.innerHTML = ""
         getReviews();
     });
 
-    // Run on page load ////////////////////////////////////////////////////////////////////////////////////////////////
+    // Functions to run on page load ///////////////////////////////////////////////////////////////////////////////////
 
     // Get languages for selectors
-    async function getLanguagesSelector(){
-        const elSearch = document.getElementById('selectorLanguage');
+    async function getSetLanguagesSelector(){
         const optionsSelector = await get_html('/get/languages');
-
-        elSearch.innerHTML = optionsSelector;
+        el.language.innerHTML = optionsSelector;
+        const elOptionDefault = $('select-language-vi');
+        elOptionDefault.selected = true;
     }
 
     // Get parts of speech for selector
-    async function getPosSelector(){
-        const el = document.getElementById('form-add-sense-pos');
-
+    async function getSetPosSelector(){
+        const el = $('form-add-sense-pos');
         const optionsSelector = await get_html('/get/pos');
-
         el.innerHTML = optionsSelector;
     }
 
     async function getReviewTypes(){
-        objReviewTypes = await get_json('/get/reviewtypes');
+        return await get_json('/get/reviewtypes');
     }
 
-    getLanguagesSelector();
-    getPosSelector();
-    getReviewTypes();
-    getReviews();
-
+    document.addEventListener('DOMContentLoaded', init);
 </script>
