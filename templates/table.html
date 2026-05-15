@@ -36,7 +36,7 @@
         <tr hidden id="{{ row.idLexeme }}_{{ row.idWord }}_{{ row.idSense }}">
             {% for col in columns %}
             <td>
-                {% if col in ('Sense', 'Example', 'Translation') %}
+                {% if col in ('Sense', 'Usage', 'Note', 'Example', 'Translation') %}
                 <textarea class="form-control" onkeydown="if(event.key === 'Enter') editTableRowEntry(this)"
                     data-idlexeme="{{ row.idLexeme }}" data-idword="{{ row.idWord }}" data-idsense="{{ row.idSense }}" data-idexample="{{ row.idExample }}"
                     data-coltype="{{ col }}"

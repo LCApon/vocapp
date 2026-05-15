@@ -3,6 +3,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select, or_, case, and_
 from sqlalchemy.orm import Session, selectinload, joinedload
+from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.exc import NoResultFound
 from datetime import datetime as dt, timezone as tz, timedelta as td
 
@@ -124,6 +125,10 @@ def update_entry_search(
 
     if data.coltype == "Sense":
         sense.sense = data.valueNew
+    elif data.coltype == "Usage":
+        sense.usage = data.valueNew
+    elif data.coltype == "Note":
+        sense.note = data.valueNew
     elif data.coltype in ("Example", "Translation"):
         if data.idExample:
             example = db.execute(select(Example).where(Example.id == data.idExample)).scalar_one()
@@ -161,6 +166,8 @@ def search_term(
             ).label("Word"),
             Sense.pos.label("PoS"),
             Sense.sense.label("Sense"),
+            coalesce(Sense.usage, "").label("Usage"),
+            coalesce(Sense.note, "").label("Note"),
             and_(Review.id.is_not(None), Review.isActive).label("isActive")
         )
         .select_from(Word)
@@ -228,7 +235,7 @@ def search_term(
         "table.html",
         {
             "rows": resultsFlat,
-            "columns": ["Language", "Word", "PoS", "Sense", "Example", "Translation"]
+            "columns": ["Language", "Word", "PoS", "Sense", "Usage", "Note", "Example", "Translation"]
         }
     )
 
