@@ -380,6 +380,8 @@
         body.usage.hidden = true;
 
         // Prepare card content data based on review type
+        cardCurrent.usage = dataReview.usage;
+
         if (dataReview.typeReview == 1) {
             cardCurrent.cue = dataReview.lexeme;
             cardCurrent.answer = dataReview.sense;
@@ -397,6 +399,7 @@
         } else if (dataReview.typeReview == 4) {
             cardCurrent.cue = dataReview.lexeme;
             cardCurrent.answer = dataReview.word;
+            cardCurrent.usage = '';
             classCue = "flashcard-text flashcard-text-word"
             classAnswer = "flashcard-text flashcard-text-word"
         } else {
@@ -413,7 +416,7 @@
         body.note.innerHTML = dataReview.note;
         body.answer.innerHTML = cardCurrent.answer;
         body.answer.className = classAnswer;
-        body.usage.innerHTML = dataReview.usage;
+        body.usage.innerHTML = cardCurrent.usage;
         
         footer.contentPre.typeReview.innerHTML = objReviewTypes[dataReview.typeReview];
         
@@ -462,7 +465,7 @@
         post_json(
             '/update/review',
             {
-                idReview: currentIdReview,
+                idReview: cardCurrent.id,
                 lexeme: edit.lexeme.value.trim() ? edit.lexeme.value.trim() : null,
                 word: edit.word.value.trim() ? edit.word.value.trim() : null,
                 sense: edit.sense.value.trim() ? edit.sense.value.trim() : null,
@@ -600,10 +603,10 @@
             {
                 iso639: el.language.value,
                 lexeme: elAdd.lexeme.value.trim(),
-                word: elAdd.word.value.trim() ? elWord.value.trim() : elLexeme.value.trim(),
+                word: elAdd.word.value.trim() ? elAdd.word.value.trim() : elAdd.lexeme.value.trim(),
                 sense: elAdd.sense.value.trim(),
                 pos: elAdd.pos.value,
-                source: elAdd.source.value.trim() ? elSource.value.trim() : null,
+                source: elAdd.source.value.trim() ? elAdd.source.value.trim() : null,
                 example: example,
                 addToReview: elAdd.addReview.checked
             }
