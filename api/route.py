@@ -150,6 +150,7 @@ def update_entry_search(
 def search_term(
     request: Request,
     term: str = Path(description="The term to search"),
+    searchSense: bool = Query(False, description="Whether to search sense, or lexeme-word (default)"),
     iso639: Optional[LanguageISO639] = Query(None, description="The language to search (iso639-2)"),
     db: Session = Depends(get_db),
 ):
@@ -181,19 +182,26 @@ def search_term(
     if iso639:
         stmtBase = stmtBase.where(Lexeme.idLanguage == iso639.id)
 
+    if searchSense:
+        filterSearchExact = Sense.sense == term
+        filterSearchLike = Sense.sense.ilike(termLike)
+    else:
+        filterSearchExact = or_(Lexeme.lexeme == term, Word.word == term)
+        filterSearchLike = or_(Lexeme.lexeme.ilike(termLike), Word.word.ilike(termLike))
+
     stmt = (
         # First the complete matches
         stmtBase
         .where(
-            or_(Lexeme.lexeme == term, Word.word == term)
+            filterSearchExact
         )
         .order_by(Sense.id)
         .union_all(
             # then the partial matches (limited to 50 entries)
             stmtBase
             .where(
-                or_(Lexeme.lexeme.ilike(termLike), Word.word.ilike(termLike)),
-                Lexeme.lexeme != term, Word.word != term
+                filterSearchLike,
+                ~filterSearchExact
             )
             .limit(50)
             .order_by(Lexeme.lexeme, Language.iso639, Word.word, Sense.id))
@@ -217,7 +225,7 @@ def search_term(
         for k, v in result[i]._asdict().items():
             resultsFlat[i][k] = v
 
-            if k in ("Lexeme", "Word"):
+            if k in (("Lexeme", "Word"), ("Sense",))[searchSense]:
                 resultsFlat[i][k] = resultsFlat[i][k].replace(term, f"<b style='color:var(--highlight);'>{term}</b>")
             elif k == "idSense":
                 rowExample = {"id": "", "example": "", "translation": ""}

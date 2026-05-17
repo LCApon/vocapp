@@ -196,6 +196,9 @@
         <div class="col">
             <h2>Word search</h2>
             <div class="input-group">
+                <button class="btn btn-primary" data-state="word" onclick="toggleLookupType(this)" id="typeLookup">
+                    Word
+                </button>
                 <input type="text" class="form-control" style="min-width:100px" id="inputWordLookup" placeholder="Word, e.g. 勉強" onkeydown="if(event.key === 'Enter') lookupWord()">
                 <button class="input-group-text btn btn-dark" onclick="lookupWord()"><i class="fas fa-search"></i></button>
             </div>
@@ -295,6 +298,7 @@
         };
 
         el.lookup = {
+            type: $('typeLookup'),
             word: $('inputWordLookup'),
             results: $('lookup-results')
         };
@@ -505,12 +509,14 @@
             return;
         }
 
+        let querySense = `?searchSense=${el.lookup.type.dataset.state === "sense"}`
+
         // Add language if selected
-        let query = ''
-        if (lang) query = '?iso639=' + encodeURIComponent(lang)
+        let queryLang = ''
+        if (lang) queryLang = '&iso639=' + encodeURIComponent(lang)
 
         // Get data
-        const data = await get_html('/search/term/' + encodeURIComponent(word) + query);
+        const data = await get_html('/search/term/' + encodeURIComponent(word) + querySense + queryLang);
 
         if (!data || data.length === 0) {
             el.lookup.results.innerHTML = '<div class="result">No results.</div>';
@@ -568,6 +574,14 @@
 
         el.lookup.word.value = wordLastSearch;
         lookupWord();
+    }
+
+    function toggleLookupType(btn) {
+        const isWord = btn.dataset.state === 'word';
+        btn.dataset.state = isWord ? 'sense' : 'word';
+        btn.textContent = isWord ? 'Sense' : 'Word';
+        btn.classList.toggle('btn-primary', !isWord);
+        btn.classList.toggle('btn-warning', isWord);
     }
 
     // Add entries /////////////////////////////////////////////////////////////////////////////////////////////////////
