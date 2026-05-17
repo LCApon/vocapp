@@ -133,6 +133,7 @@
                         <div class="card-footer pb-3" id="card-footer-pre">
                             <div class="row align-items-center">
                                 <div class="col">
+                                    <p id="review-language" class="mb-0 fst-italic fw-light"></p>
                                 </div>
                                 <div class="col">
                                     <button id="btn-review-show" type="button" class="btn btn-light py-1" onclick="show_review()">Show</button>
@@ -275,6 +276,7 @@
             footer: {
                 pre: getElement('card-footer-pre'),
                 contentPre: {
+                    language: getElement('review-language'),
                     btnShow: getElement('btn-review-show'),
                     typeReview: getElement('review-type')
                 },
@@ -422,6 +424,7 @@
         body.usage.innerHTML = cardCurrent.usage;
         
         footer.contentPre.typeReview.innerHTML = objReviewTypes[dataReview.typeReview];
+        footer.contentPre.language.innerHTML = el.language.value ? "" : dataReview.language;
         
         // Fill edit card info
         const edit = el.review.edit
@@ -450,6 +453,7 @@
         card.header.btnEdit.hidden = false;
         
         // Hide pre-footer
+        card.footer.contentPre.language.innerHTML = "";
         card.footer.pre.hidden = true;
     };
 
