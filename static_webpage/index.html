@@ -248,7 +248,7 @@
 <script>
     const API = '/api';
     const cardCurrent = {}
-    const el = {}
+    let el = {}
 
     let objReviewTypes = {};
     let cachedReviewDue = [];
@@ -259,7 +259,7 @@
 
     // Init
     async function init() {
-        el = {
+        Object.assign(el, {
             language: getElement('selectorLanguage'),
             card: {
                 header: {
@@ -316,7 +316,7 @@
                     translationExample: getElement('form-add-example-translation'),
                 }
             },
-        };
+        });
 
         await getSetLanguagesSelector();
         await getSetPosSelector();
