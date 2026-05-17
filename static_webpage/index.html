@@ -19,6 +19,10 @@
     <style>
         :root {
             --highlight: #b7fe34;
+            --text-note: 1.1em;
+            --text-sense: 1.3em;
+            --text-word: 1.7em;
+            --text-semibold-weight: 500;
         }
 
         table.table {
@@ -57,23 +61,20 @@
 
         .flashcard-text {
             display: block;
-            margin-left: 0;
-            margin-right: 0;
-            margin-top: .5em;
-            margin-bottom: .5em;
+            margin: 0.5em 0;
         }
 
-        .flashcard-text-note {
-            font-size: 1.1em;
+        .flashcard-note {
+            font-size: var(--text-note);
         }
-        
-        .flashcard-text-sense {
-            font-size: 1.3em;
+
+        .flashcard-sense {
+            font-size: var(--text-sense);
         }
-        
-        .flashcard-text-word {
-            font-size: 1.7em;
-            font-weight: 500;
+
+        .flashcard-word {
+            font-size: var(--text-word);
+            font-weight: var(--text-semibold-weight);
         }
     </style>
 </head>
@@ -82,7 +83,7 @@
 <body>
 <div class="container-fluid maxWidth">
 
-    <div class="row offsetTop align-items-center">
+    <header class="row offsetTop align-items-center">
         <div class="col">
             <h1>Vocapp</h1>
         </div>
@@ -90,10 +91,10 @@
             <select id="selectorLanguage" class="form-select no-focus-outline" value="Select a language">
             </select>
         </div>
-    </div>
+    </header>
 
     <!-- Review words -->
-    <div class="row offsetTop">
+    <section class="row offsetTop">
         <div class="col">
             <div class="row">
                 <h2 class="col"><span>Review words</span> <span id="counter-review"></span></h2>
@@ -122,10 +123,10 @@
                         <!-- Core content  -->
                         <div class="card-body">
                             <p id="review-cue"></p>
-                            <p id="review-note" class="flashcard-text flashcard-text-note fst-italic fw-light"></p>
+                            <p id="review-note" class="flashcard-text flashcard-note fst-italic fw-light"></p>
                             <hr></hr>
                             <p hidden id="review-answer"></p>
-                            <p hidden id="review-usage" class="flashcard-text flashcard-text-note fst-italic fw-light"></p>
+                            <p hidden id="review-usage" class="flashcard-text flashcard-note fst-italic fw-light"></p>
                         </div>
 
                         <!-- Footer with extra info and show answer button -->
@@ -156,7 +157,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Modal for review edit -->
     <div class="modal fade" id="modalEditReviewData" tabindex="-1" role="dialog" aria-labelledby="modalEditReviewData" aria-hidden="true">
@@ -192,7 +193,7 @@
     </div>
 
     <!-- Word search -->
-    <div class="row offsetTop">
+    <section class="row offsetTop">
         <div class="col">
             <h2>Word search</h2>
             <div class="input-group">
@@ -203,12 +204,12 @@
                 <button class="input-group-text btn btn-dark" onclick="lookupWord()"><i class="fas fa-search"></i></button>
             </div>
         </div>
-    </div>
+    </section>
 
     <div id="lookup-results" class="row offsetTop"></div>
 
     <!-- Add entries to database -->
-    <div class="row offsetTop">
+    <section class="row offsetTop">
         <div class="col">
             <div class="row">
                 <h2>Add words</h2>
@@ -237,7 +238,7 @@
                 <button type="submit" class="btn btn-primary">Submit</button>
             </form>
         </div>
-    </div>
+    </section>
 
 </div>
 </body>
@@ -253,68 +254,68 @@
     let wordLastSearch;
 
     // Simplified ID query function
-    const $ = id => document.getElementById(id);
+    const getElement = id => document.getElementById(id);
 
     // Init
     async function init() {
-        el.language = $('selectorLanguage')
+        el.language = getElement('selectorLanguage')
 
         el.card = {
             header: {
-                btnAgain: $('btn-rating-again'),
-                pos: $('review-pos'),
-                btnEdit: $('btn-edit-data'),
+                btnAgain: getElement('btn-rating-again'),
+                pos: getElement('review-pos'),
+                btnEdit: getElement('btn-edit-data'),
             },
             body: {
-                cue: $('review-cue'),
-                note: $('review-note'),
-                answer: $('review-answer'),
-                usage: $('review-usage'),
+                cue: getElement('review-cue'),
+                note: getElement('review-note'),
+                answer: getElement('review-answer'),
+                usage: getElement('review-usage'),
             },
             footer: {
-                pre: $('card-footer-pre'),
+                pre: getElement('card-footer-pre'),
                 contentPre: {
-                    btnShow: $('btn-review-show'),
-                    typeReview: $('review-type')
+                    btnShow: getElement('btn-review-show'),
+                    typeReview: getElement('review-type')
                 },
-                post: $('card-footer-post'),
+                post: getElement('card-footer-post'),
             }
         };
 
         el.review = {
-            content: $('review-content'),
-            contentEmpty: $('review-content-empty'),
-            counter: $('counter-review'),
+            content: getElement('review-content'),
+            contentEmpty: getElement('review-content-empty'),
+            counter: getElement('counter-review'),
             edit: {
-                lexeme: $('form-review-lexeme'),
-                word: $('form-review-word'),
-                sense: $('form-review-sense'),
-                note: $('form-review-note'),
-                usage: $('form-review-usage'),
-                isActive: $('form-review-is-active'),
-                sentenceExample: $('form-review-example-sentence'),
-                translationExample: $('form-review-example-translation'),
+                lexeme: getElement('form-review-lexeme'),
+                word: getElement('form-review-word'),
+                sense: getElement('form-review-sense'),
+                note: getElement('form-review-note'),
+                usage: getElement('form-review-usage'),
+                isActive: getElement('form-review-is-active'),
+                sentenceExample: getElement('form-review-example-sentence'),
+                translationExample: getElement('form-review-example-translation'),
             }
         };
 
         el.lookup = {
-            type: $('typeLookup'),
-            word: $('inputWordLookup'),
-            results: $('lookup-results')
+            type: getElement('typeLookup'),
+            word: getElement('inputWordLookup'),
+            results: getElement('lookup-results')
         };
 
         el.entry = {}
 
         el.entry.add = {
-            lexeme: $('form-add-lexeme'),
-            word: $('form-add-word'),
-            sense: $('form-add-sense'),
-            pos: $('form-add-sense-pos'),
-            source: $('form-add-source'),
-            sense: $('form-add-sense'),
-            addReview: $('form-add-review'),
-            sentenceExample: $('form-add-example-sentence'),
-            translationExample: $('form-add-example-translation'),
+            lexeme: getElement('form-add-lexeme'),
+            word: getElement('form-add-word'),
+            sense: getElement('form-add-sense'),
+            pos: getElement('form-add-sense-pos'),
+            source: getElement('form-add-source'),
+            sense: getElement('form-add-sense'),
+            addReview: getElement('form-add-review'),
+            sentenceExample: getElement('form-add-example-sentence'),
+            translationExample: getElement('form-add-example-translation'),
         }
 
         await getSetLanguagesSelector();
@@ -356,7 +357,7 @@
 
     // Card HTML makeup
     async function updateCard() {
-        const elCounter = $('counter-review');
+        const elCounter = getElement('counter-review');
 
         if (cachedReviewDue.length > cardCurrent.idx) {
             dataReview = cachedReviewDue[cardCurrent.idx];
@@ -387,8 +388,8 @@
         if (dataReview.typeReview == 1) {
             cardCurrent.cue = dataReview.lexeme;
             cardCurrent.answer = dataReview.sense;
-            classCue = "flashcard-text flashcard-text-word"
-            classAnswer = "flashcard-text flashcard-text-sense"
+            classCue = "flashcard-text flashcard-word"
+            classAnswer = "flashcard-text flashcard-sense"
         } else if (dataReview.typeReview == 2) {
             cardCurrent.cue = dataReview.sense;
             if (dataReview.lexeme != dataReview.word) {
@@ -396,14 +397,14 @@
             } else {
                 cardCurrent.answer = dataReview.lexeme;
             }
-            classCue = "flashcard-text flashcard-text-sense"
-            classAnswer = "flashcard-text flashcard-text-word"
+            classCue = "flashcard-text flashcard-sense"
+            classAnswer = "flashcard-text flashcard-word"
         } else if (dataReview.typeReview == 4) {
             cardCurrent.cue = dataReview.lexeme;
             cardCurrent.answer = dataReview.word;
             cardCurrent.usage = '';
-            classCue = "flashcard-text flashcard-text-word"
-            classAnswer = "flashcard-text flashcard-text-word"
+            classCue = "flashcard-text flashcard-word"
+            classAnswer = "flashcard-text flashcard-word"
         } else {
             // Other types yet to be implemented
             cardCurrent.idx = cardCurrent.idx + 1;
@@ -555,7 +556,7 @@
 
     async function showEditTableRowEntry(data) {
         const idRow = data.dataset.id;
-        const elRow = $(idRow);
+        const elRow = getElement(idRow);
         
         elRow.hidden = !elRow.hidden;
     };
@@ -587,7 +588,7 @@
     // Add entries /////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Add entry
-    $('form-add-entry').addEventListener('submit', function(event) {
+    getElement('form-add-entry').addEventListener('submit', function(event) {
         event.preventDefault(); // stop the page reload
 
         // Perform built-in validation
@@ -634,7 +635,7 @@
     }
 
     // Set language on page ////////////////////////////////////////////////////////////////////////////////////////////
-    $('selectorLanguage').addEventListener('change', function(event) {
+    getElement('selectorLanguage').addEventListener('change', function(event) {
         el.review.counter.innerHTML = ""
         getReviews();
     });
@@ -649,7 +650,7 @@
 
     // Get parts of speech for selector
     async function getSetPosSelector(){
-        const el = $('form-add-sense-pos');
+        const el = getElement('form-add-sense-pos');
         const optionsSelector = await get_html('/get/pos');
         el.innerHTML = optionsSelector;
     }
