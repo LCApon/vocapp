@@ -1,15 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Path
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from sqlalchemy import select, or_, case
-from sqlalchemy.orm import Session
+from sqlalchemy import select, or_, case, and_
+from sqlalchemy.orm import Session, selectinload, joinedload
+from sqlalchemy.sql.functions import coalesce
+from sqlalchemy.exc import NoResultFound
 from datetime import datetime as dt, timezone as tz, timedelta as td
 
 from database.session import get_db
 from database.model import Lexeme, Word, Sense, Review, Example, Language
-from api.model import EntryCreate, LanguageISO639, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate
+from api.model import LanguageISO639, ReviewType, PartOfSpeech
+from api.model import EntryCreate, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate, SearchDataUpdate, LanguageInput
 from typing import Optional
-from random import shuffle
+from random import shuffle, choice
 # from service.fsrs_service import apply_review
 
 router = APIRouter()
@@ -77,8 +80,8 @@ def create_entry(
 
     return (lexeme, word, sense)
 
-@router.post("/entry/update", status_code=status.HTTP_200_OK)
-def update_entry(
+@router.post("/update/review", status_code=status.HTTP_200_OK)
+def update_entry_review(
     data: ReviewDataUpdate,
     db: Session = Depends(get_db),
 ):
@@ -87,8 +90,13 @@ def update_entry(
     if data.sense:
         rl.sense.sense = data.sense
     
+    if data.note:
+        rl.note = data.note
+
+    if data.usage:
+        rl.sense.usage = data.usage
+
     if data.word:
-        
         rl.sense.word.word = data.word
 
     if data.lexeme:
@@ -101,6 +109,39 @@ def update_entry(
                 translation=data.example.translation
             )
         )
+
+    if not data.isActive:
+        for r in rl.sense.review:
+            r.isActive = data.isActive
+
+    db.commit()
+
+@router.post("/update/search", status_code=status.HTTP_200_OK)
+def update_entry_search(
+    data: SearchDataUpdate,
+    db: Session = Depends(get_db),
+):
+    sense = db.execute(select(Sense).where(Sense.id == data.idSense)).scalar_one()
+
+    if data.coltype == "Sense":
+        sense.sense = data.valueNew
+    elif data.coltype == "Usage":
+        sense.usage = data.valueNew
+    elif data.coltype == "Note":
+        sense.note = data.valueNew
+    elif data.coltype in ("Example", "Translation"):
+        if data.idExample:
+            example = db.execute(select(Example).where(Example.id == data.idExample)).scalar_one()
+            if data.coltype == "Example":
+                example.example = data.valueNew
+            else:
+                example.translation = data.valueNew
+        else:
+            if data.coltype == "Example":
+                example = Example(example=data.valueNew, translation="NOG INVULLEN", sense=[sense])
+            else:
+                example = Example(example="NOG INVULLEN", translation=data.valueNew, sense=[sense])
+            db.add(example)
     
     db.commit()
 
@@ -109,6 +150,7 @@ def update_entry(
 def search_term(
     request: Request,
     term: str = Path(description="The term to search"),
+    searchSense: bool = Query(False, description="Whether to search sense, or lexeme-word (default)"),
     iso639: Optional[LanguageISO639] = Query(None, description="The language to search (iso639-2)"),
     db: Session = Depends(get_db),
 ):
@@ -123,40 +165,44 @@ def search_term(
                 (Lexeme.lexeme == Word.word, Word.word),
                 else_=(Lexeme.lexeme + " (" + Word.word + ")")
             ).label("Word"),
-            # Lexeme.lexeme.label("Lexeme"),
-            # Word.word.label("Word"),
             Sense.pos.label("PoS"),
             Sense.sense.label("Sense"),
-            case(
-                (Review.id.is_not(None), True),
-                else_=False
-            ).label("isActive")
+            coalesce(Sense.usage, "").label("Usage"),
+            coalesce(Sense.note, "").label("Note"),
+            and_(Review.id.is_not(None), Review.isActive).label("isActive")
         )
         .select_from(Word)
         .join(Lexeme)
         .join(Language)
         .join(Sense)
         .join(Review, isouter=True)
+        .where(or_(Review.id.is_(None), Review.typeReview == 1))
     )
 
     if iso639:
         stmtBase = stmtBase.where(Lexeme.idLanguage == iso639.id)
 
+    if searchSense:
+        filterSearchExact = Sense.sense == term
+        filterSearchLike = Sense.sense.ilike(termLike)
+    else:
+        filterSearchExact = or_(Lexeme.lexeme == term, Word.word == term)
+        filterSearchLike = or_(Lexeme.lexeme.ilike(termLike), Word.word.ilike(termLike))
+
     stmt = (
         # First the complete matches
         stmtBase
         .where(
-            or_(Lexeme.lexeme == term, Word.word == term)
+            filterSearchExact
         )
         .order_by(Sense.id)
         .union_all(
             # then the partial matches (limited to 50 entries)
             stmtBase
             .where(
-                or_(Lexeme.lexeme.like(termLike), Word.word.like(termLike)),
-                Lexeme.lexeme != term, Word.word != term
+                filterSearchLike,
+                ~filterSearchExact
             )
-            .where(or_(Review.id.is_(None), Review.typeReview == 1))
             .limit(50)
             .order_by(Lexeme.lexeme, Language.iso639, Word.word, Sense.id))
     )
@@ -166,6 +212,12 @@ def search_term(
     if not result:
         return ""
 
+    seqSense = db.execute(
+        select(Sense)
+        .where(Sense.id.in_([row.idSense for row in result]))
+    ).scalars().all()
+    dctExamples = {sense.id: choice(sense.example).__dict__ for sense in seqSense if sense.example}
+
     resultsFlat = []
     for i in range(len(result)):
         resultsFlat += [dict()]
@@ -173,64 +225,139 @@ def search_term(
         for k, v in result[i]._asdict().items():
             resultsFlat[i][k] = v
 
-            if k in ("Lexeme", "Word"):
+            if k in (("Lexeme", "Word"), ("Sense",))[searchSense]:
                 resultsFlat[i][k] = resultsFlat[i][k].replace(term, f"<b style='color:var(--highlight);'>{term}</b>")
+            elif k == "idSense":
+                rowExample = {"id": "", "example": "", "translation": ""}
+                if v in dctExamples:
+                    rowExample["id"] = dctExamples[v]["id"]
+                    rowExample["example"] = dctExamples[v]["example"]
+                    rowExample["translation"] = dctExamples[v]["translation"]
+                
+                resultsFlat[i]["idExample"] = rowExample["id"]    
+                resultsFlat[i]["Example"] = rowExample["example"]
+                resultsFlat[i]["Translation"] = rowExample["translation"]
 
     return templates.TemplateResponse(
         request,
         "table.html",
         {
             "rows": resultsFlat,
-            "columns": ["Language", "Word", "PoS", "Sense"]
+            "columns": ["Language", "Word", "PoS", "Sense", "Usage", "Note", "Example", "Translation"]
         }
     )
 
+@router.get("/get/languages", status_code=status.HTTP_200_OK, response_class=HTMLResponse)
+def get_languages_selector(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    results = db.execute(select(Language.iso639.label("value"), Language.language.label("label"))).all()
+    resultsFlat = [{"value": "", "label": "Language"}] + [row._asdict() for row in results]
+
+    return templates.TemplateResponse(
+        request,
+        "selector.html",
+        {
+            "options": resultsFlat
+        }
+    )
+
+@router.get("/get/pos", status_code=status.HTTP_200_OK, response_class=HTMLResponse)
+def get_pos_selector(
+    request: Request
+):
+    ctxt = [{"value": "", "label": "Part of Speech"}] + [{'value': i.value, 'label': i.name } for i in PartOfSpeech]
+
+    return templates.TemplateResponse(
+        request,
+        "selector.html",
+        {
+            "options": ctxt
+        }
+    )
+
+@router.get("/get/reviewtypes", status_code=status.HTTP_200_OK)
+def get_review_types(
+    request: Request
+):
+    return {type.id: type.name for type in ReviewType}
+
 # Learning -------------------------------------------------------------------------------------------------------------
-@router.post("/add/review/", status_code=status.HTTP_200_OK)
+@router.post("/add/review", status_code=status.HTTP_200_OK)
 def start_learning_translation(
     data: ReviewAdd,
     db: Session = Depends(get_db)
 ):
+    # Get Sense, with eager loading of neede relationships
+    try:
+        sense = db.execute(
+            select(Sense)
+            .where(Sense.id == data.idSense)
+            .options(
+                joinedload(Sense.word)
+                .joinedload(Word.lexeme)
+                .joinedload(Lexeme.language),
+                selectinload(Sense.review)
+            )
+        ).scalar_one()
+    except NoResultFound:
+        raise HTTPException(status_code=404, detail=f"Sense with id '{data.idSense}' not found")
+    except Exception:
+        raise HTTPException(status_code=404, detail="Unknown error occured during query for Sense related to review to add")
 
+    setReviewType = {i.id for i in ReviewType}
+
+    # Activate any existing reviews
     rExisting = db.execute(
         select(Review).where(Review.idSense == data.idSense)
-    ).all()
-    if rExisting:
-        return rExisting
-    
-    sData = db.execute(
-        select(Sense).where(Sense.id == data.idSense)
-    )
+    ).scalars().all()
 
-    if not sData:
-        raise HTTPException(status_code=404, detail=f"Sense with id '{data.idSense}' not found")
+    lstReview = []
 
+    for r in rExisting:
+        r.isActive = True
+        setReviewType.remove(r.typeReview)
+        lstReview += [r]
+
+
+    dtNow = dt.now(tz=tz.utc)
     dctKwargs = {
-        "idSense": data.idSense,
-        "dtStarted": dt.now(tz=tz.utc),
-        "sense": sData.scalar_one()
+        "idSense": sense.id,
+        "dtStarted": dtNow,
+        "sense": sense
     }
 
-    rData = [
+    # Skip review for the reading if unnecessary
+    if not (sense.word.lexeme.language.iso639 in ("jp", "zh") and (sense.word.lexeme.lexeme != sense.word.word)):
+        setReviewType.remove(ReviewType("reading").id)
+
+    dctDueAdd = {
+        1: td(days=0),
+        2: td(days=7),
+        # 3: td(days=14), Cloze not yet implemented
+        4: td(days=0)
+    }
+
+    lstReview += [
         Review(
-            typeReview=1,
-            dtDue=dt.now(tz=tz.utc),
+            typeReview=idType,
+            dtDue=dtNow + dctDueAdd[idType],
             **dctKwargs
-        ),
-        Review(
-            typeReview=2,
-            dtDue=dt.now(tz=tz.utc) + td(days=7),
-            **dctKwargs
-        ),
+        )
+        for idType in setReviewType
     ]
 
-    db.add_all(rData)
+    db.add_all(lstReview)
     db.commit()
 
-    return(rData)
+    return(lstReview)
 
-@router.get("/due", status_code=status.HTTP_200_OK)
-def get_due_words(db: Session = Depends(get_db)):
+@router.post("/due", status_code=status.HTTP_200_OK)
+def get_due_words(
+    data: LanguageInput,
+    db: Session = Depends(get_db)
+):
     stmt = (
         select(
             Review.id,
@@ -238,16 +365,25 @@ def get_due_words(db: Session = Depends(get_db)):
             Language.language,
             Lexeme.lexeme,
             Word.word,
+            Review.note,
             Sense.sense,
-            Sense.pos
+            Sense.pos,
+            Sense.usage
         )
         .select_from(Review)
         .join(Sense)
         .join(Word)
         .join(Lexeme)
         .join(Language)
-        .where(Review.dtDue < dt.now(tz.utc))
+        .where(
+            Review.dtDue < dt.now(tz.utc),
+            Review.isActive
+        )
     )
+
+    if (data.iso639.id != 0):
+        stmt = stmt.where(Language.id == data.iso639.id)
+
     results = db.execute(stmt).all()
 
     if not results:

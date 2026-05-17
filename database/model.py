@@ -1,19 +1,30 @@
-from sqlalchemy import ForeignKey, UniqueConstraint, Integer, String, DateTime, Index, Table, Column, Identity
+from sqlalchemy import ForeignKey, UniqueConstraint, Table, Column, MetaData
+from sqlalchemy import Identity, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 
-from service.fsrs_service import get_cardUpdated, get_rescheduled_card
+from service.fsrs_service import get_card_updated, get_rescheduled_card
 from config import settings
 
 
 SCHEMA = settings.schemaDb
+NAMING_CONVENTION = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_N_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "%(table_name)s_%(column_0_name)s_fkey",
+    "pk": "pk_%(table_name)s",
+}
 
 class Base(DeclarativeBase):
     """Base class that all other objects inherit from
     """
-    __table_args__ = {"schema": SCHEMA}
+    metadata = MetaData(
+        schema=SCHEMA,
+        naming_convention=NAMING_CONVENTION
+    )
 
     # Timestamps
     dtCreated: Mapped[datetime] = mapped_column(
@@ -26,8 +37,16 @@ class Base(DeclarativeBase):
 tblSenseExample = Table(
     "sense_example",
     Base.metadata,
-    Column("idSense", ForeignKey(f"{SCHEMA}.sense.id"), primary_key=True),
-    Column("id_example", ForeignKey(f"{SCHEMA}.example.id"), primary_key=True),
+    Column("idSense", ForeignKey(f"{SCHEMA}.sense.id"), primary_key=True, index=True),
+    Column("idExample", ForeignKey(f"{SCHEMA}.example.id"), primary_key=True, index=True),
+    schema=SCHEMA
+)
+
+tblSenseWordAlt = Table(
+    "sense_word_alt",
+    Base.metadata,
+    Column("idSense", ForeignKey(f"{SCHEMA}.sense.id"), primary_key=True, index=True),
+    Column("idWordAlt", ForeignKey(f"{SCHEMA}.word.id"), primary_key=True, index=True),
     schema=SCHEMA
 )
 
@@ -35,6 +54,7 @@ class WordAttributeType(Base):
     """Types for language specific word attributes
     """
     __tablename__ = "word_attribute_type"
+
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
     idLanguage: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.language.id"))
 
@@ -48,6 +68,7 @@ class WordAttribute(Base):
     """Language specific attributes for words
     """
     __tablename__ = "word_attribute"
+
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
     idWord: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
     idType: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word_attribute_type.id"))
@@ -62,6 +83,7 @@ class Pronunciation(Base):
     """Written pronunciation for words in different langauges, esp. for different dialects
     """
     __tablename__ = "pronunciation"
+
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
     idWord: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
 
@@ -83,6 +105,11 @@ class Example(Base):
     """Example phrases and sentences, with their translation
     """
     __tablename__ = "example"
+    __table_args__ = (
+        UniqueConstraint("example", "translation"),
+        {"schema": SCHEMA}
+    )
+
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
 
     example: Mapped[str]
@@ -103,12 +130,13 @@ class Example(Base):
 class Language(Base):
     """Languages used in vocapp
     """
+    __tablename__ = "language"
     __table_args__ = (
         UniqueConstraint("iso639"),
         UniqueConstraint("language"),
         {"schema": SCHEMA}
     )
-    __tablename__ = "language"
+
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
 
     iso639: Mapped[str] = mapped_column(String(2))
@@ -128,9 +156,9 @@ class ReviewLog(Base):
     """Review log table, the complete history of all reviews done
     """
     __tablename__ = "reviewlog"
-    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
 
-    id_review: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.review.id"))
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
+    idReview: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.review.id"), index=True)
 
     dtDue: Mapped[datetime] =  mapped_column(DateTime(timezone=True))
     dtReview: Mapped[datetime] =  mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -147,7 +175,7 @@ class ReviewLog(Base):
     ### Methods ###
     def __repr__(self) -> str:
         return (
-            f"ReviewLog({self.id}, id_review={self.id_review}, " +
+            f"ReviewLog({self.id}, idReview={self.idReview}, " +
             f"dtReview={self.dtReview}, rating={self.rating}, state={self.state}, " +
             f"stability={self.stability}, difficulty={self.difficulty})"
         )
@@ -158,13 +186,15 @@ class Review(Base):
     __tablename__ = "review"
     __table_args__ = (
         UniqueConstraint("idSense", "typeReview"),
-        Index("ix_review_id", "id"),
         {"schema": SCHEMA}
     )
+
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
 
-    idSense: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.sense.id"))
+    idSense: Mapped[str] = mapped_column(ForeignKey(f"{SCHEMA}.sense.id"), index=True)
     typeReview: Mapped[int]
+
+    isActive: Mapped[bool] = mapped_column(Boolean, default=True)
 
     dtStarted: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     dtDue: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -177,6 +207,8 @@ class Review(Base):
 
     reps: Mapped[int] = mapped_column(Integer, default=0)
     lapses: Mapped[int] = mapped_column(Integer, default=0)
+
+    note: Mapped[Optional[str]]
 
     ### Relations ###
     sense: Mapped["Sense"] = relationship(
@@ -192,7 +224,7 @@ class Review(Base):
     def update_review(self, rating, dtReview = datetime.now(timezone.utc)):
         try:
             rLog = ReviewLog(
-                id_review=self.id,
+                idReview=self.id,
                 dtDue=self.dtDue,
                 dtReview=dtReview,
                 rating=rating,
@@ -201,8 +233,7 @@ class Review(Base):
                 difficulty=self.difficulty
             )
 
-            self.dtLastReview = dtReview
-            cardUpdate = get_cardUpdated(self, rating)
+            cardUpdate = get_card_updated(self, rating, dtReview)
 
         except Exception as e:
             print(f"Error composing review log and/or card update: {e}")
@@ -220,6 +251,7 @@ class Review(Base):
                 self.stability = cardUpdate.stability
                 self.difficulty = cardUpdate.difficulty
                 self.reps += 1
+                self.dtLastReview = cardUpdate.last_review
             except Exception as e:
                 print(f"Error updating review and/or log: {e}")
                 raise
@@ -242,6 +274,7 @@ class Review(Base):
         return (
             f"Review({self.id} ({self.idSense}), " +
             f"word={self.sense.word.word}, sense={self.sense.sense}, " +
+            f"state={self.state}, stability={self.stability}, difficulty={self.difficulty}, " +
             f"dtStarted={self.dtStarted}, dtLastReview={self.dtLastReview}, dtDue={self.dtDue})"
         )
 
@@ -249,15 +282,11 @@ class Sense(Base):
     """Senses table, containing the various meanings for all words
     """
     __tablename__ = "sense"
-    __table_args__ = (
-        Index("ix_sense_id", "id"),
-        Index("ix_sense_idWord", "idWord"),
-        {"schema": SCHEMA}
-    )
+
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
-    idWord: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"))
+    idWord: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.word.id"), index=True)
     pos: Mapped[str] # pos: Part of speech
-    sense: Mapped[str]
+    sense: Mapped[str] = mapped_column(String, index=True)
     definition: Mapped[Optional[str]]
     usage: Mapped[Optional[str]]
     note: Mapped[Optional[str]]
@@ -275,12 +304,12 @@ class Sense(Base):
         secondary=tblSenseExample,
         back_populates="sense"
     )
+    altWord: Mapped[List["Word"]] = relationship(
+        secondary=tblSenseWordAlt
+    )
 
     ### Methods ###
-    def add_review(
-        self
-        # date_review: datetime | None = None
-    ) -> list:
+    def add_review(self) -> list:
         """
         Convenience helper: create a Review from self → target and reverse.
         """
@@ -311,13 +340,12 @@ class Word(Base):
     __tablename__ = "word"
     __table_args__ = (
         UniqueConstraint("idLexeme", "word"),
-        Index("ix_word_id", "id"),
-        Index("ix_word_word", "word"),
         {"schema": SCHEMA}
     )
+
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
     idLexeme: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.lexeme.id"))
-    word: Mapped[str]
+    word: Mapped[str] = mapped_column(String, index=True)
     source: Mapped[Optional[str]]
 
     ### Relations ###
@@ -325,6 +353,7 @@ class Word(Base):
         back_populates="word"
     )
     sense: Mapped[List[Sense]] = relationship(
+        foreign_keys="[Sense.idWord]",
         back_populates="word",
         cascade="all, delete-orphan"
     )
@@ -341,14 +370,11 @@ class Lexeme(Base):
     __tablename__ = "lexeme"
     __table_args__ = (
         UniqueConstraint("lexeme", "idLanguage"),
-        Index("ix_lexeme_id", "id"),
-        Index("ix_lexeme_lexeme", "lexeme"),
-        Index("ix_lexeme_idLanguage", "idLanguage"),
         {"schema": SCHEMA}
     )
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
-    idLanguage: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.language.id"))
-    lexeme: Mapped[str]
+    idLanguage: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.language.id"), index=True)
+    lexeme: Mapped[str] = mapped_column(String, index=True)
     source: Mapped[Optional[str]]
 
     ### Relations ###

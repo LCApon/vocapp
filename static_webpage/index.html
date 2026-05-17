@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vocapp</title>
+
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+
+    <!-- Bootstrap & FA -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Personal scripts -->
+     <script src="http_methods.js"></script>
+
+    <!-- Personal style -->
+    <style>
+        :root {
+            --highlight: #b7fe34;
+            --text-note: 1.1em;
+            --text-sense: 1.3em;
+            --text-word: 1.7em;
+            --text-semibold-weight: 500;
+        }
+
+        table.table {
+            max-width: 100%;
+        }
+
+        .maxWidth {
+            max-width:1200px;
+        }
+
+        .offsetTop {
+            padding-top: 1em;
+        }
+
+        .offsetBottom {
+            padding-bottom: .5em;
+        }
+
+        .mgBottom {
+            margin-bottom: .2rem;
+        }
+
+		.table-rounded {
+			border-radius: 1em;
+			overflow: hidden;
+		}
+
+        .no-click {
+            pointer-events: none;
+        }
+
+        .no-focus-outline:focus {
+            outline: none;
+            box-shadow: none;
+        }
+
+        .flashcard-text {
+            display: block;
+            margin: 0.5em 0;
+        }
+
+        .flashcard-note {
+            font-size: var(--text-note);
+        }
+
+        .flashcard-sense {
+            font-size: var(--text-sense);
+        }
+
+        .flashcard-word {
+            font-size: var(--text-word);
+            font-weight: var(--text-semibold-weight);
+        }
+    </style>
+</head>
+
+<!-- Body ----------------------------------------------------------------------------------------------------------->
+<body>
+<div class="container-fluid maxWidth">
+
+    <header class="row offsetTop align-items-center">
+        <div class="col">
+            <h1>Vocapp</h1>
+        </div>
+        <div class="col-md-2 p-0">
+            <select id="selectorLanguage" class="form-select no-focus-outline" value="Select a language">
+            </select>
+        </div>
+    </header>
+
+    <!-- Review words -->
+    <section class="row offsetTop">
+        <div class="col">
+            <div class="row">
+                <h2 class="col"><span>Review words</span> <span id="counter-review"></span></h2>
+                <div class="col">
+                    <button class="btn btn-outline-dark p-1 float-end" style="font-size: 13px" onclick="reschedule_review()">Reschedule</button>
+                </div>
+            </div>
+            <div class="row">
+                <div hidden id="review-content" class="col">
+                    <div id="review-card" class="card bg-dark text-white text-center mx-auto" style="max-width: 22em; border-radius: 1em;">
+                        <!-- Header with PoS and extra functionality -->
+                        <div class="card-header">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <button hidden id="btn-rating-again" type="button" class="btn btn-outline-light" onclick="rateCard(1)"><i class="fas fa-redo"></i></button>
+                                </div>
+                                <div class="col">
+                                    <p id="review-pos" class="" style='color:var(--highlight);'></p>
+                                </div>
+                                <div class="col">
+                                    <button hidden id="btn-edit-data" type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#modalEditReviewData"><i class="fas fa-edit"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Core content  -->
+                        <div class="card-body">
+                            <p id="review-cue"></p>
+                            <p id="review-note" class="flashcard-text flashcard-note fst-italic fw-light"></p>
+                            <hr></hr>
+                            <p hidden id="review-answer"></p>
+                            <p hidden id="review-usage" class="flashcard-text flashcard-note fst-italic fw-light"></p>
+                        </div>
+
+                        <!-- Footer with extra info and show answer button -->
+                        <div class="card-footer pb-3" id="card-footer-pre">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <p id="review-language" class="mb-0 fst-italic fw-light"></p>
+                                </div>
+                                <div class="col">
+                                    <button id="btn-review-show" type="button" class="btn btn-light py-1" onclick="show_review()">Show</button>
+                                </div>
+                                <div class="col">
+                                    <p id="review-type" class="mb-0 fst-italic fw-light"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer for after showing answer -->
+                        <div hidden class="card-footer pb-3 align-items-center" id="card-footer-post">
+                            <div id="btn-review-rating" class="btn-group btn-group-lg" role="group" aria-label="Rating buttons">
+                                <button type="button" class="btn btn-danger" onclick="rateCard(2)">Hard</button>
+                                <button type="button" class="btn btn-primary" onclick="rateCard(3)">Good</button>
+                                <button type="button" class="btn btn-success" onclick="rateCard(4)">Easy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div hidden id="review-content-empty" class="col">No cards due right now.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal for review edit -->
+    <div class="modal fade" id="modalEditReviewData" tabindex="-1" role="dialog" aria-labelledby="modalEditReviewData" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="modalEditReviewDataTitle">Edit card data</h5>
+        </div>
+        <div class="modal-body">
+            <form>
+                <div class="form-group">
+                    <label for="form-review-lexeme">Lexeme, word and sense data</label>
+                    <input id="form-review-lexeme" class="form-control" type="text" placeholder="Lexeme">
+                    <input id="form-review-word" class="form-control" type="text" placeholder="Word">
+                    <textarea id="form-review-sense" class="form-control" placeholder="Sense" rows="1"></textarea>
+                    <textarea id="form-review-note" class="form-control" placeholder="Note" rows="1"></textarea>
+                    <textarea id="form-review-usage" class="form-control" placeholder="Usage" rows="1"></textarea>
+                    <input id="form-review-is-active" class="form-check-input" type="checkbox" value="" checked>
+                    <label class="form-check-label" for="form-add-review">Is active</label>
+                    <br>
+                    <label for="form-review-example-sentence">Example sentence</label>
+                    <textarea id="form-review-example-sentence" class="form-control" placeholder="Example sentence" rows="1"></textarea>
+                    <textarea id="form-review-example-translation" class="form-control" placeholder="Example translation" rows="1"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" onclick="editEntryReview()" data-bs-dismiss="modal">Save changes</button>
+        </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Word search -->
+    <section class="row offsetTop">
+        <div class="col">
+            <h2>Word search</h2>
+            <div class="input-group">
+                <button class="btn btn-primary" data-state="word" onclick="toggleLookupType(this)" id="typeLookup">
+                    Word
+                </button>
+                <input type="text" class="form-control" style="min-width:100px" id="inputWordLookup" placeholder="Word, e.g. 勉強" onkeydown="if(event.key === 'Enter') lookupWord()">
+                <button class="input-group-text btn btn-dark" onclick="lookupWord()"><i class="fas fa-search"></i></button>
+            </div>
+        </div>
+    </section>
+
+    <div id="lookup-results" class="row offsetTop"></div>
+
+    <!-- Add entries to database -->
+    <section class="row offsetTop">
+        <div class="col">
+            <div class="row">
+                <h2>Add words</h2>
+            </div>
+            <form id="form-add-entry" role="form" class="pt-3">
+                <div class="form-group row">
+                    <div class="col">
+                        <label for="form-add-lexeme">Lexeme, word and sense</label>
+                        <input id="form-add-lexeme" class="form-control mgBottom" type="text" placeholder="Lexeme" required>
+                        <input id="form-add-word" class="form-control mgBottom" type="text" placeholder="Word (leave empty to use lexeme)">
+                        <textarea id="form-add-sense" class="form-control mgBottom" placeholder="Sense" rows="1" required></textarea>
+                        <input id="form-add-source" class="form-control mgBottom" type="text" placeholder="Source (optional)">
+                    </div>
+                    <div class="col">
+                        <label for="form-add-example-sentence">PoS and Example sentence</label>
+                        <select id="form-add-sense-pos" class="col form-select bg-light border-0 no-focus-outline mgBottom" required>
+                        </select>
+                        <textarea id="form-add-example-sentence" class="form-control mgBottom" placeholder="Example sentence" rows="1"></textarea>
+                        <textarea id="form-add-example-translation" class="form-control mgBottom" placeholder="Example translation" rows="1"></textarea>
+                        <input class="form-check-input" type="checkbox" value="" id="form-add-review" checked>
+                        <label class="form-check-label" for="form-add-review">
+                            Add to review?
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </section>
+
+</div>
+</body>
+
+<!-- Script ----------------------------------------------------------------------------------------------------------->
+<script>
+    const API = '/api';
+    const cardCurrent = {}
+    let el = {}
+
+    let objReviewTypes = {};
+    let cachedReviewDue = [];
+    let wordLastSearch = "";
+
+    // Simplified ID query function
+    const getElement = id => document.getElementById(id);
+
+    // Init
+    async function init() {
+        Object.assign(el, {
+            language: getElement('selectorLanguage'),
+            card: {
+                header: {
+                    btnAgain: getElement('btn-rating-again'),
+                    pos: getElement('review-pos'),
+                    btnEdit: getElement('btn-edit-data'),
+                },
+                body: {
+                    cue: getElement('review-cue'),
+                    note: getElement('review-note'),
+                    answer: getElement('review-answer'),
+                    usage: getElement('review-usage'),
+                },
+                footer: {
+                    pre: getElement('card-footer-pre'),
+                    contentPre: {
+                        language: getElement('review-language'),
+                        btnShow: getElement('btn-review-show'),
+                        typeReview: getElement('review-type'),
+                    },
+                    post: getElement('card-footer-post'),
+                }
+            },
+            review: {
+                content: getElement('review-content'),
+                contentEmpty: getElement('review-content-empty'),
+                counter: getElement('counter-review'),
+                edit: {
+                    lexeme: getElement('form-review-lexeme'),
+                    word: getElement('form-review-word'),
+                    sense: getElement('form-review-sense'),
+                    note: getElement('form-review-note'),
+                    usage: getElement('form-review-usage'),
+                    isActive: getElement('form-review-is-active'),
+                    sentenceExample: getElement('form-review-example-sentence'),
+                    translationExample: getElement('form-review-example-translation'),
+                }
+            },
+            lookup: {
+                type: getElement('typeLookup'),
+                word: getElement('inputWordLookup'),
+                results: getElement('lookup-results'),
+            },
+            entry: {
+                add: {
+                    lexeme: getElement('form-add-lexeme'),
+                    word: getElement('form-add-word'),
+                    sense: getElement('form-add-sense'),
+                    pos: getElement('form-add-sense-pos'),
+                    source: getElement('form-add-source'),
+                    sense: getElement('form-add-sense'),
+                    addReview: getElement('form-add-review'),
+                    sentenceExample: getElement('form-add-example-sentence'),
+                    translationExample: getElement('form-add-example-translation'),
+                }
+            },
+        });
+
+        await getSetLanguagesSelector();
+        await getSetPosSelector();
+        objReviewTypes = await getReviewTypes();
+        await getReviews();
+    }
+
+    // Review page /////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Get reviewable cards
+    async function getReviews() {
+        cardCurrent.idx = 0
+        const lang = el.language.value;
+
+        const data = await post_json('/due', {iso639: lang});
+
+
+        if (!data || data.length === 0) {
+            el.review.content.hidden = true;
+            el.review.contentEmpty.hidden = false;
+            return;
+        } else {
+            el.review.content.hidden = false;
+            el.review.contentEmpty.hidden = true;
+        }
+
+        cachedReviewDue = data;
+
+        updateCard();
+    }
+
+    // Reschedule review(s)
+    async function reschedule_review() {
+        post_json(
+            "/reschedule",
+            {}
+        );
+    }
+
+    // Card HTML makeup
+    async function updateCard() {
+        const elCounter = getElement('counter-review');
+
+        if (cachedReviewDue.length > cardCurrent.idx) {
+            dataReview = cachedReviewDue[cardCurrent.idx];
+            el.review.counter.textContent = `(${cardCurrent.idx}/${cachedReviewDue.length})`;
+            cardCurrent.id = dataReview.id;
+        } else {
+            el.review.content.hidden = true;
+            el.review.contentEmpty.hidden = false;
+            el.review.counter.textContent = ''
+            return;
+        }
+        
+        const footer = el.card.footer
+        const header = el.card.header
+        const body = el.card.body
+
+        // Hide items not shown at start of reviewing card
+        footer.post.hidden = true;
+        header.btnAgain.hidden = true;
+        header.btnEdit.hidden = true;
+
+        body.answer.hidden = true;
+        body.usage.hidden = true;
+
+        // Prepare card content data based on review type
+        cardCurrent.usage = dataReview.usage;
+
+        if (dataReview.typeReview === 1) {
+            cardCurrent.cue = dataReview.lexeme;
+            cardCurrent.answer = dataReview.sense;
+            classCue = "flashcard-text flashcard-word"
+            classAnswer = "flashcard-text flashcard-sense"
+        } else if (dataReview.typeReview === 2) {
+            cardCurrent.cue = dataReview.sense;
+            if (dataReview.lexeme != dataReview.word) {
+                cardCurrent.answer = `${dataReview.lexeme} (${dataReview.word})`;
+            } else {
+                cardCurrent.answer = dataReview.lexeme;
+            }
+            classCue = "flashcard-text flashcard-sense"
+            classAnswer = "flashcard-text flashcard-word"
+        } else if (dataReview.typeReview === 4) {
+            cardCurrent.cue = dataReview.lexeme;
+            cardCurrent.answer = dataReview.word;
+            cardCurrent.usage = '';
+            classCue = "flashcard-text flashcard-word"
+            classAnswer = "flashcard-text flashcard-word"
+        } else {
+            // Other types yet to be implemented
+            cardCurrent.idx = cardCurrent.idx + 1;
+            updateCard();
+            return null
+        }
+
+        // Fill card info
+        header.pos.textContent = dataReview.pos;
+        body.cue.textContent = cardCurrent.cue;
+        body.cue.className = classCue;
+        body.note.textContent = dataReview.note;
+        body.answer.textContent = cardCurrent.answer;
+        body.answer.className = classAnswer;
+        body.usage.textContent = cardCurrent.usage;
+        
+        footer.contentPre.typeReview.textContent = objReviewTypes[dataReview.typeReview];
+        footer.contentPre.language.textContent = el.language.value ? "" : dataReview.language;
+        
+        // Fill edit card info
+        const edit = el.review.edit
+        edit.lexeme.value = dataReview.lexeme;
+        edit.word.value = dataReview.word;
+        edit.sense.value = dataReview.sense;
+        edit.note.value = dataReview.note;
+        edit.usage.value = dataReview.usage;
+        edit.isActive.checked = true;
+        
+        // Unhide items shown at start of reviewing card
+        footer.pre.hidden = false;
+        el.review.content.hidden = false;
+
+        cardCurrent.idx = cardCurrent.idx + 1
+    }
+
+    // Show review answer on button click
+    async function show_review() {
+        // Unhide answer and rating
+        const card = el.card
+        card.body.answer.hidden = false;
+        card.body.usage.hidden = false;
+        card.footer.post.hidden = false;
+        card.header.btnAgain.hidden = false;
+        card.header.btnEdit.hidden = false;
+        
+        // Hide pre-footer
+        card.footer.contentPre.language.textContent = "";
+        card.footer.pre.hidden = true;
+    };
+
+    // Edit data for card on review
+    async function editEntryReview() {
+        const edit = el.review.edit
+
+        let example = null
+        if (edit.sentenceExample & edit.translationExample) {
+            example = {
+                example: edit.sentenceExample.value.trim(),
+                translation: edit.translationExample.value.trim()
+            }
+        }
+
+        post_json(
+            '/update/review',
+            {
+                idReview: cardCurrent.id,
+                lexeme: edit.lexeme.value.trim() ? edit.lexeme.value.trim() : null,
+                word: edit.word.value.trim() ? edit.word.value.trim() : null,
+                sense: edit.sense.value.trim() ? edit.sense.value.trim() : null,
+                note: edit.note.value.trim() ? edit.note.value.trim() : null,
+                usage: edit.usage.value.trim() ? edit.usage.value.trim() : null,
+                example: example,
+                isActive: edit.isActive.checked
+            }
+        );
+    }
+
+    // Rate card-review
+    async function rateCard(rating) {
+        currentUTCDate = new Date(Date.now()).toISOString();
+
+        post_json(
+            "/submit/review",
+            {
+                idReview: cardCurrent.id,
+                dtReview: currentUTCDate,
+                rating: rating
+            }
+        );
+
+        cardCurrent.id = null;
+
+        updateCard();
+    }
+
+    // Word search /////////////////////////////////////////////////////////////////////////////////////////////////////
+    
+    // Word lookup
+    async function lookupWord() {
+        const lang = el.language.value;
+        const word = el.lookup.word.value.trim()
+
+        if (!word) {
+            el.lookup.results.innerHTML = '<div class="result"></div>';
+            return;
+        }
+
+        let querySense = `?searchSense=${el.lookup.type.dataset.state === "sense"}`
+
+        // Add language if selected
+        let queryLang = ''
+        if (lang) queryLang = '&iso639=' + encodeURIComponent(lang)
+
+        // Get data
+        const data = await get_html('/search/term/' + encodeURIComponent(word) + querySense + queryLang);
+
+        if (!data || data.length === 0) {
+            el.lookup.results.innerHTML = '<div class="result">No results.</div>';
+            return;
+        }
+
+        tableWordLookup = data;
+        el.lookup.results.innerHTML = `<div class="col"><div class="table-responsive result">${tableWordLookup}</div></div>`;
+
+        // Save the last searched word, for use after page refresh when editing a row
+        wordLastSearch = word;
+        el.lookup.word.value = null;
+    }
+
+    // Add to review when 'Add' button is clicked
+    async function add_to_review(button) {
+        const idLexeme = button.dataset.idlexeme;
+        const idWord = button.dataset.idword;
+        const idSense = button.dataset.idsense;
+
+        const isNowActive = button.classList.contains("active");
+
+        if (isNowActive) {
+            // Add row to reviews
+            button.classList.add("no-click");
+            button.textContent = "Added";
+
+            post_json(
+                "/add/review",
+                {
+                    idSense: idSense
+                }
+            );
+        }
+    };
+
+    async function showEditTableRowEntry(data) {
+        const idRow = data.dataset.id;
+        const elRow = getElement(idRow);
+        
+        elRow.hidden = !elRow.hidden;
+    };
+
+    async function editTableRowEntry(data) {
+        await post_json(
+            "/update/search",
+            {
+                coltype: data.dataset.coltype,
+                idSense: data.dataset.idsense,
+                idExample: data.dataset.idexample ? data.dataset.idexample : null,
+                valueNew: data.value
+            }
+        );
+        data.value = null;
+
+        el.lookup.word.value = wordLastSearch;
+        lookupWord();
+    }
+
+    function toggleLookupType(btn) {
+        const isWord = btn.dataset.state === 'word';
+        btn.dataset.state = isWord ? 'sense' : 'word';
+        btn.textContent = isWord ? 'Sense' : 'Word';
+        btn.classList.toggle('btn-primary', !isWord);
+        btn.classList.toggle('btn-warning', isWord);
+    }
+
+    // Add entries /////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Add entry
+    getElement('form-add-entry').addEventListener('submit', function(event) {
+        event.preventDefault(); // stop the page reload
+
+        // Perform built-in validation
+        if (!this.checkValidity()) {
+            this.reportValidity();
+            return;
+        }
+
+        addEntry(new FormData(this));
+    });
+
+    async function addEntry() {
+        const elAdd = el.entry.add
+
+        let example = null
+        if (elAdd.sentenceExample & elAdd.translationExample) {
+            example = {
+                example: elAdd.sentenceExample.value.trim(),
+                translation: elAdd.translationExample.value.trim()
+            }
+        }
+
+        r = post_json(
+            '/entry/create',
+            {
+                iso639: el.language.value,
+                lexeme: elAdd.lexeme.value.trim(),
+                word: elAdd.word.value.trim() ? elAdd.word.value.trim() : elAdd.lexeme.value.trim(),
+                sense: elAdd.sense.value.trim(),
+                pos: elAdd.pos.value,
+                source: elAdd.source.value.trim() ? elAdd.source.value.trim() : null,
+                example: example,
+                addToReview: elAdd.addReview.checked
+            }
+        );
+
+        elAdd.pos.selectedIndex = 0;
+        elAdd.lexeme.value = null;
+        elAdd.word.value = null;
+        elAdd.sense.value = null;
+        elAdd.source.value = null;
+        elAdd.sentenceExample.value = null;
+        elAdd.translationExample.value = null;
+    }
+
+    // Set language on page ////////////////////////////////////////////////////////////////////////////////////////////
+    getElement('selectorLanguage').addEventListener('change', function(event) {
+        el.review.counter.textContent = ""
+        getReviews();
+    });
+
+    // Functions to run on page load ///////////////////////////////////////////////////////////////////////////////////
+
+    // Get languages for selectors
+    async function getSetLanguagesSelector(){
+        const optionsSelector = await get_html('/get/languages');
+        el.language.innerHTML = optionsSelector;
+    }
+
+    // Get parts of speech for selector
+    async function getSetPosSelector(){
+        const el = getElement('form-add-sense-pos');
+        const optionsSelector = await get_html('/get/pos');
+        el.innerHTML = optionsSelector;
+    }
+
+    async function getReviewTypes(){
+        return await get_json('/get/reviewtypes');
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+</script>

@@ -1,0 +1,46 @@
+services:
+  vocapp:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - db
+    networks:
+      - reverse-proxy-net
+      - vocapp-net
+    develop:
+      # Create a `watch` configuration to update the app
+      watch:
+        # Sync the working directory with the `/app` directory in the container
+        - action: sync
+          path: .
+          target: /app
+          initial_sync: true
+          # Exclude the project virtual environment — it could be for a
+          # different platform in the container
+          ignore:
+            - .venv/
+        # # Rebuild the image if dependencies change by checking uv.lock
+        - action: rebuild
+          path: ./uv.lock
+
+  db:
+    image: postgres:18.3-alpine
+    container_name: vocapp-db
+    environment:
+      - POSTGRES_DB=${DBNAMER}
+      - POSTGRES_USER=${DBNAMER}
+      - POSTGRES_PASSWORD=${DBNAMER}
+    restart: unless-stopped
+    volumes:
+      - /mnt/vocapp/db:/var/lib/postgresql
+    networks:
+      - vocapp-net
+    ports:
+      - 5432:5432
+    shm_size: 512mb
+
+networks:
+  vocapp-net:
+  reverse-proxy-net:
+    external: true
+

@@ -2,9 +2,10 @@
     <thead>
         <tr>
             {% for col in columns %}
-            <th scope="col">{{ col }}</th>
+            <th scope="col">{{ col if not col == "Language" else "🌏" }}</th>
             {% endfor %}
             <th scope="col">Add to review</th>
+            <th scope="col">Edit row</th>
         </tr>
     </thead>
     <tbody class="table-group-divider">
@@ -22,6 +23,29 @@
                     {{ 'Added' if row.isActive else 'Add' }}
                 </button>
             </td>
+            <td>
+                <button class="btn btn-outline-light"
+                    data-bs-toggle="button" aria-pressed="{{ 'true' if row.isActive else 'false'}}"
+                    data-id="{{ row.idLexeme }}_{{ row.idWord }}_{{ row.idSense }}"
+                    onclick="showEditTableRowEntry(this)"
+                >
+                    <i class="fas fa-edit"></i>
+                </button>
+            </td>
+        </tr>
+        <tr hidden id="{{ row.idLexeme }}_{{ row.idWord }}_{{ row.idSense }}">
+            {% for col in columns %}
+            <td>
+                {% if col in ('Sense', 'Usage', 'Note', 'Example', 'Translation') %}
+                <textarea class="form-control" onkeydown="if(event.key === 'Enter') editTableRowEntry(this)"
+                    data-idlexeme="{{ row.idLexeme }}" data-idword="{{ row.idWord }}" data-idsense="{{ row.idSense }}" data-idexample="{{ row.idExample }}"
+                    data-coltype="{{ col }}"
+                >{{ row[col] }}</textarea>
+                {% endif %}
+            </td>
+            {% endfor %}
+            <td></td>
+            <td></td>
         </tr>
         {% endfor %}
     </tbody>

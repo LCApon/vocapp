@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, cast
 from enum import Enum
 from fsrs import Rating
 
@@ -11,10 +11,12 @@ class LanguageISO639(str, Enum):
 
     def __new__(cls, iso639: str, idLanguage: int):
         obj: str = str.__new__(cls, iso639)
+        obj = cast("LanguageISO639", obj)
         obj._value_ = iso639
         obj.id = idLanguage
         return obj
 
+    Empty      = ("",   0)
     Dutch      = ("nl", 1)
     Japanese   = ("jp", 2)
     Vietnamese = ("vi", 3)
@@ -26,17 +28,19 @@ class ReviewType(str, Enum):
 
     def __new__(cls, typeReview: str, idType: int):
         obj: str = str.__new__(cls, typeReview)
+        obj = cast("ReviewType", obj)
         obj._value_ = typeReview
         obj.id = idType
         return obj
 
     Recognition = ("recognition", 1)
     Production  = ("production", 2)
-    Cloze       = ("cloze", 3)
+    # Cloze       = ("cloze", 3)
+    Reading     = ("reading", 4)
 
 # Parts of speech
 class PartOfSpeech(str, Enum):
-    Adjecive       = "adj"
+    Adjective      = "adj"
     Adnominal      = "adnominal"
     Adverb         = "adv"
     Affix          = "affix"
@@ -47,6 +51,7 @@ class PartOfSpeech(str, Enum):
     Conjunction    = "conj"
     Counter        = "counter"
     Determiner     = "det"
+    Expression     = "expr"
     Infix          = "infix"
     Noun           = "noun"
     Numeral        = "num"
@@ -92,6 +97,9 @@ class EntryCreate(BaseModel):
         description="Whether to immediately add the word to the review stack"
     )
 
+class LanguageInput(BaseModel):
+    iso639: LanguageISO639
+
 class ReviewAdd(BaseModel):
     idSense: int = Field(..., description="ID of the sense to add to reviews")
 
@@ -112,4 +120,14 @@ class ReviewDataUpdate(BaseModel):
     lexeme: Optional[str] = Field(None, description="New lexeme text")
     word: Optional[str] = Field(None, description="New word text")
     sense: Optional[str] = Field(None, description="New sense text")
+    note: Optional[str] = Field(None, description="New note text")
+    usage: Optional[str] = Field(None, description="New usage text")
     example: Optional[ExampleInput]
+    isActive: bool = Field(True, description="Whether to keep review as active")
+
+class SearchDataUpdate(BaseModel):
+    coltype: str
+    idSense: int
+    idExample: Optional[int] = Field(None, description="ID of currently shown example in search")
+
+    valueNew: str = Field(..., description="New text for given column")
