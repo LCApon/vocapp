@@ -42,6 +42,14 @@ tblSenseExample = Table(
     schema=SCHEMA
 )
 
+tblSenseWordAlt = Table(
+    "sense_word_alt",
+    Base.metadata,
+    Column("idSense", ForeignKey(f"{SCHEMA}.sense.id"), primary_key=True, index=True),
+    Column("idWordAlt", ForeignKey(f"{SCHEMA}.word.id"), primary_key=True, index=True),
+    schema=SCHEMA
+)
+
 class WordAttributeType(Base):
     """Types for language specific word attributes
     """
@@ -296,7 +304,9 @@ class Sense(Base):
         secondary=tblSenseExample,
         back_populates="sense"
     )
-    altWord: Mapped[List["Word"]] = relationship()
+    altWord: Mapped[List["Word"]] = relationship(
+        secondary=tblSenseWordAlt
+    )
 
     ### Methods ###
     def add_review(self) -> list:
@@ -343,6 +353,7 @@ class Word(Base):
         back_populates="word"
     )
     sense: Mapped[List[Sense]] = relationship(
+        foreign_keys="[Sense.idWord]",
         back_populates="word",
         cascade="all, delete-orphan"
     )
