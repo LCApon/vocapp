@@ -250,75 +250,73 @@
     const cardCurrent = {}
     const el = {}
 
-    let objReviewTypes;
-    let cachedReviewDue;
-    let wordLastSearch;
+    let objReviewTypes = {};
+    let cachedReviewDue = [];
+    let wordLastSearch = "";
 
     // Simplified ID query function
     const getElement = id => document.getElementById(id);
 
     // Init
     async function init() {
-        el.language = getElement('selectorLanguage')
-
-        el.card = {
-            header: {
-                btnAgain: getElement('btn-rating-again'),
-                pos: getElement('review-pos'),
-                btnEdit: getElement('btn-edit-data'),
-            },
-            body: {
-                cue: getElement('review-cue'),
-                note: getElement('review-note'),
-                answer: getElement('review-answer'),
-                usage: getElement('review-usage'),
-            },
-            footer: {
-                pre: getElement('card-footer-pre'),
-                contentPre: {
-                    language: getElement('review-language'),
-                    btnShow: getElement('btn-review-show'),
-                    typeReview: getElement('review-type')
+        el = {
+            language: getElement('selectorLanguage'),
+            card: {
+                header: {
+                    btnAgain: getElement('btn-rating-again'),
+                    pos: getElement('review-pos'),
+                    btnEdit: getElement('btn-edit-data'),
                 },
-                post: getElement('card-footer-post'),
-            }
+                body: {
+                    cue: getElement('review-cue'),
+                    note: getElement('review-note'),
+                    answer: getElement('review-answer'),
+                    usage: getElement('review-usage'),
+                },
+                footer: {
+                    pre: getElement('card-footer-pre'),
+                    contentPre: {
+                        language: getElement('review-language'),
+                        btnShow: getElement('btn-review-show'),
+                        typeReview: getElement('review-type'),
+                    },
+                    post: getElement('card-footer-post'),
+                }
+            },
+            review: {
+                content: getElement('review-content'),
+                contentEmpty: getElement('review-content-empty'),
+                counter: getElement('counter-review'),
+                edit: {
+                    lexeme: getElement('form-review-lexeme'),
+                    word: getElement('form-review-word'),
+                    sense: getElement('form-review-sense'),
+                    note: getElement('form-review-note'),
+                    usage: getElement('form-review-usage'),
+                    isActive: getElement('form-review-is-active'),
+                    sentenceExample: getElement('form-review-example-sentence'),
+                    translationExample: getElement('form-review-example-translation'),
+                }
+            },
+            lookup: {
+                type: getElement('typeLookup'),
+                word: getElement('inputWordLookup'),
+                results: getElement('lookup-results'),
+            },
+            entry: {
+                add: {
+                    lexeme: getElement('form-add-lexeme'),
+                    word: getElement('form-add-word'),
+                    sense: getElement('form-add-sense'),
+                    pos: getElement('form-add-sense-pos'),
+                    source: getElement('form-add-source'),
+                    sense: getElement('form-add-sense'),
+                    addReview: getElement('form-add-review'),
+                    sentenceExample: getElement('form-add-example-sentence'),
+                    translationExample: getElement('form-add-example-translation'),
+                }
+            },
         };
-
-        el.review = {
-            content: getElement('review-content'),
-            contentEmpty: getElement('review-content-empty'),
-            counter: getElement('counter-review'),
-            edit: {
-                lexeme: getElement('form-review-lexeme'),
-                word: getElement('form-review-word'),
-                sense: getElement('form-review-sense'),
-                note: getElement('form-review-note'),
-                usage: getElement('form-review-usage'),
-                isActive: getElement('form-review-is-active'),
-                sentenceExample: getElement('form-review-example-sentence'),
-                translationExample: getElement('form-review-example-translation'),
-            }
-        };
-
-        el.lookup = {
-            type: getElement('typeLookup'),
-            word: getElement('inputWordLookup'),
-            results: getElement('lookup-results')
-        };
-
-        el.entry = {}
-
-        el.entry.add = {
-            lexeme: getElement('form-add-lexeme'),
-            word: getElement('form-add-word'),
-            sense: getElement('form-add-sense'),
-            pos: getElement('form-add-sense-pos'),
-            source: getElement('form-add-source'),
-            sense: getElement('form-add-sense'),
-            addReview: getElement('form-add-review'),
-            sentenceExample: getElement('form-add-example-sentence'),
-            translationExample: getElement('form-add-example-translation'),
-        }
 
         await getSetLanguagesSelector();
         await getSetPosSelector();
@@ -363,12 +361,12 @@
 
         if (cachedReviewDue.length > cardCurrent.idx) {
             dataReview = cachedReviewDue[cardCurrent.idx];
-            el.review.counter.innerHTML = `(${cardCurrent.idx}/${cachedReviewDue.length})`;
+            el.review.counter.textContent = `(${cardCurrent.idx}/${cachedReviewDue.length})`;
             cardCurrent.id = dataReview.id;
         } else {
             el.review.content.hidden = true;
             el.review.contentEmpty.hidden = false;
-            el.review.counter.innerHTML = ''
+            el.review.counter.textContent = ''
             return;
         }
         
@@ -387,12 +385,12 @@
         // Prepare card content data based on review type
         cardCurrent.usage = dataReview.usage;
 
-        if (dataReview.typeReview == 1) {
+        if (dataReview.typeReview === 1) {
             cardCurrent.cue = dataReview.lexeme;
             cardCurrent.answer = dataReview.sense;
             classCue = "flashcard-text flashcard-word"
             classAnswer = "flashcard-text flashcard-sense"
-        } else if (dataReview.typeReview == 2) {
+        } else if (dataReview.typeReview === 2) {
             cardCurrent.cue = dataReview.sense;
             if (dataReview.lexeme != dataReview.word) {
                 cardCurrent.answer = `${dataReview.lexeme} (${dataReview.word})`;
@@ -401,7 +399,7 @@
             }
             classCue = "flashcard-text flashcard-sense"
             classAnswer = "flashcard-text flashcard-word"
-        } else if (dataReview.typeReview == 4) {
+        } else if (dataReview.typeReview === 4) {
             cardCurrent.cue = dataReview.lexeme;
             cardCurrent.answer = dataReview.word;
             cardCurrent.usage = '';
@@ -415,16 +413,16 @@
         }
 
         // Fill card info
-        header.pos.innerHTML = dataReview.pos;
-        body.cue.innerHTML = cardCurrent.cue;
+        header.pos.textContent = dataReview.pos;
+        body.cue.textContent = cardCurrent.cue;
         body.cue.className = classCue;
-        body.note.innerHTML = dataReview.note;
-        body.answer.innerHTML = cardCurrent.answer;
+        body.note.textContent = dataReview.note;
+        body.answer.textContent = cardCurrent.answer;
         body.answer.className = classAnswer;
-        body.usage.innerHTML = cardCurrent.usage;
+        body.usage.textContent = cardCurrent.usage;
         
-        footer.contentPre.typeReview.innerHTML = objReviewTypes[dataReview.typeReview];
-        footer.contentPre.language.innerHTML = el.language.value ? "" : dataReview.language;
+        footer.contentPre.typeReview.textContent = objReviewTypes[dataReview.typeReview];
+        footer.contentPre.language.textContent = el.language.value ? "" : dataReview.language;
         
         // Fill edit card info
         const edit = el.review.edit
@@ -453,7 +451,7 @@
         card.header.btnEdit.hidden = false;
         
         // Hide pre-footer
-        card.footer.contentPre.language.innerHTML = "";
+        card.footer.contentPre.language.textContent = "";
         card.footer.pre.hidden = true;
     };
 
@@ -640,7 +638,7 @@
 
     // Set language on page ////////////////////////////////////////////////////////////////////////////////////////////
     getElement('selectorLanguage').addEventListener('change', function(event) {
-        el.review.counter.innerHTML = ""
+        el.review.counter.textContent = ""
         getReviews();
     });
 
