@@ -91,7 +91,7 @@ def update_entry_review(
         rl.sense.sense = data.sense
     
     if data.note:
-        rl.sense.note = data.note
+        rl.note = data.note
 
     if data.usage:
         rl.sense.usage = data.usage
