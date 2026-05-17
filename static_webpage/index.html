@@ -325,11 +325,9 @@
         cardCurrent.idx = 0
         const lang = el.language.value;
 
-        if (!lang){
-            return;
-        }
+        const data = await post_json('/due', {iso639: lang});
 
-        const data = await post_json('/due', {'iso639': lang});
+
         if (!data || data.length === 0) {
             el.review.content.hidden = true;
             el.review.contentEmpty.hidden = false;
@@ -633,8 +631,6 @@
     async function getSetLanguagesSelector(){
         const optionsSelector = await get_html('/get/languages');
         el.language.innerHTML = optionsSelector;
-        const elOptionDefault = $('select-language-vi');
-        elOptionDefault.selected = true;
     }
 
     // Get parts of speech for selector

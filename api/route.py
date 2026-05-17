@@ -369,10 +369,13 @@ def get_due_words(
         .join(Language)
         .where(
             Review.dtDue < dt.now(tz.utc),
-            Review.isActive,
-            Language.id == data.iso639.id
+            Review.isActive
         )
     )
+
+    if (data.iso639.id != 0):
+        stmt = stmt.where(Language.id == data.iso639.id)
+
     results = db.execute(stmt).all()
 
     if not results:

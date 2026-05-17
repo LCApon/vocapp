@@ -16,6 +16,7 @@ class LanguageISO639(str, Enum):
         obj.id = idLanguage
         return obj
 
+    Empty      = ("",   0)
     Dutch      = ("nl", 1)
     Japanese   = ("jp", 2)
     Vietnamese = ("vi", 3)
