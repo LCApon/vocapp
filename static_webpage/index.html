@@ -109,7 +109,7 @@
                         <div class="card-header">
                             <div class="row align-items-center">
                                 <div class="col">
-                                    <button hidden id="btn-rating-again" type="button" class="btn btn-outline-light" onclick="rateCard(1)"><i class="fas fa-redo"></i></button>
+                                    <button id="btn-review-back" type="button" class="btn btn-outline-light" onclick="undoReview()"><i class="fa-solid fa-angles-left"></i></button>
                                 </div>
                                 <div class="col">
                                     <p id="review-pos" class="" style='color:var(--highlight);'></p>
@@ -147,6 +147,7 @@
                         <!-- Footer for after showing answer -->
                         <div hidden class="card-footer pb-3 align-items-center" id="card-footer-post">
                             <div id="btn-review-rating" class="btn-group btn-group-lg" role="group" aria-label="Rating buttons">
+                                <button id="btn-rating-again" type="button" class="btn btn-secondary" onclick="rateCard(1)"><i class="fas fa-redo"></i></button>
                                 <button type="button" class="btn btn-danger" onclick="rateCard(2)">Hard</button>
                                 <button type="button" class="btn btn-primary" onclick="rateCard(3)">Good</button>
                                 <button type="button" class="btn btn-success" onclick="rateCard(4)">Easy</button>
@@ -263,7 +264,7 @@
             language: getElement('selectorLanguage'),
             card: {
                 header: {
-                    btnAgain: getElement('btn-rating-again'),
+                    btnBack: getElement('btn-review-back'),
                     pos: getElement('review-pos'),
                     btnEdit: getElement('btn-edit-data'),
                 },
@@ -359,16 +360,16 @@
     async function updateCard() {
         const elCounter = getElement('counter-review');
 
-        if (cachedReviewDue.length > cardCurrent.idx) {
-            dataReview = cachedReviewDue[cardCurrent.idx];
-            el.review.counter.textContent = `(${cardCurrent.idx}/${cachedReviewDue.length})`;
-            cardCurrent.id = dataReview.id;
-        } else {
+        if (cachedReviewDue.length < cardCurrent.idx) {
             el.review.content.hidden = true;
             el.review.contentEmpty.hidden = false;
             el.review.counter.textContent = ''
+            cardCurrent.id = null;
             return;
         }
+        dataReview = cachedReviewDue[cardCurrent.idx];
+        el.review.counter.textContent = `(${cardCurrent.idx}/${cachedReviewDue.length})`;
+        cardCurrent.id = dataReview.id;
         
         const footer = el.card.footer
         const header = el.card.header
@@ -376,7 +377,6 @@
 
         // Hide items not shown at start of reviewing card
         footer.post.hidden = true;
-        header.btnAgain.hidden = true;
         header.btnEdit.hidden = true;
 
         body.answer.hidden = true;
@@ -409,7 +409,6 @@
             // Other types yet to be implemented
             cardCurrent.idx = cardCurrent.idx + 1;
             updateCard();
-            return null
         }
 
         // Fill card info
@@ -447,7 +446,6 @@
         card.body.answer.hidden = false;
         card.body.usage.hidden = false;
         card.footer.post.hidden = false;
-        card.header.btnAgain.hidden = false;
         card.header.btnEdit.hidden = false;
         
         // Hide pre-footer
@@ -495,8 +493,26 @@
             }
         );
 
-        cardCurrent.id = null;
+        cardCurrent.id = null
+        updateCard();
+    }
 
+    // Go back to previous card
+    async function undoReview() {
+        if (cardCurrent.idx  <= 1 || !cardCurrent) {
+            return;
+        };
+
+        dataReview = cachedReviewDue[cardCurrent.idx - 2];
+        r = await post_json("/undo/review", {idReview: dataReview.id});
+
+        if (!r) {
+            console.log(r);
+            return;
+        }
+
+        cardCurrent.idx--;
+        cardCurrent.idx--;
         updateCard();
     }
 

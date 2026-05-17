@@ -10,7 +10,7 @@ from datetime import datetime as dt, timezone as tz, timedelta as td
 from database.session import get_db
 from database.model import Lexeme, Word, Sense, Review, Example, Language
 from api.model import LanguageISO639, ReviewType, PartOfSpeech
-from api.model import EntryCreate, ReviewAdd, ReviewSubmit, ReviewReschedule, ReviewDataUpdate, SearchDataUpdate, LanguageInput
+from api.model import EntryCreate, ReviewAdd, ReviewSubmit, ReviewId, ReviewDataUpdate, SearchDataUpdate, LanguageInput
 from typing import Optional
 from random import shuffle, choice
 # from service.fsrs_service import apply_review
@@ -411,16 +411,36 @@ def submit_review(
 
     return review
 
+# Go back 1 review
+@router.post("/undo/review", status_code=status.HTTP_200_OK)
+def undo_review(
+    data: ReviewId,
+    db: Session = Depends(get_db)
+):
+    review = db.execute(
+        select(Review)
+        .where(Review.id == data.idReview)
+        .options(selectinload(Review.reviewLog))
+    ).scalar_one()
+
+    dtMax = max([rl.dtReview for rl in review.reviewLog])
+    
+    if ((dt.now(tz.utc) - dtMax).total_seconds() / 60) > 5:
+        return review
+    
+    review.reviewLog = [rl for rl in review.reviewLog if rl.dtReview != dtMax]
+    review.reschedule()
+
+    db.commit()
+
+    return review
+
 # Reschedule reviews
 @router.post("/reschedule", status_code=status.HTTP_200_OK)
 def reschedule_reviews(
-    data: ReviewReschedule,
     db: Session = Depends(get_db)
 ):
     stmt = select(Review)
-
-    if data.idReview:
-        stmt = stmt.where(Review.id == data.idReview)
     results = db.execute(stmt).scalars().all()
 
     for result in results:

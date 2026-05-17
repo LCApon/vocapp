@@ -108,8 +108,8 @@ class ReviewSubmit(BaseModel):
     dtReview: datetime = Field(..., description="Datetime of review, UTC")
     rating: Rating = Field(..., description="SRS Rating: 0=Again, 1=Hard, 2=Good, 3=Easy")
 
-class ReviewReschedule(BaseModel):
-    idReview: Optional[int] = Field(None, description="ID of the review to reschedule")
+class ReviewId(BaseModel):
+    idReview: int
 
 class ExampleInput(BaseModel):
     example: str = Field(..., min_length=1, description="Example sentence in the language being studied")
