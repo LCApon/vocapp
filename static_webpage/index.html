@@ -360,7 +360,7 @@
     async function updateCard() {
         const elCounter = getElement('counter-review');
 
-        if (cachedReviewDue.length < cardCurrent.idx) {
+        if (cachedReviewDue.length <= cardCurrent.idx) {
             el.review.content.hidden = true;
             el.review.contentEmpty.hidden = false;
             el.review.counter.textContent = ''
