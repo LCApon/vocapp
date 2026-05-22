@@ -619,6 +619,12 @@
     });
 
     async function addEntry() {
+        if (! el.language.value) {
+            el.language.style.backgroundColor = '#dc3545';
+            el.language.style.color = 'white';
+            return;
+        }
+
         const elAdd = el.entry.add
 
         let example = null
@@ -654,7 +660,9 @@
 
     // Set language on page ////////////////////////////////////////////////////////////////////////////////////////////
     getElement('selectorLanguage').addEventListener('change', function(event) {
-        el.review.counter.textContent = ""
+        el.language.style.backgroundColor = '';
+        el.language.style.color = '';
+        el.review.counter.textContent = '';
         getReviews();
     });
 
