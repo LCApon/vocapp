@@ -6,7 +6,7 @@ from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 
 from service.fsrs_service import get_card_updated, get_rescheduled_card
-from config import settings
+from configs.config import settings
 
 
 SCHEMA = settings.schemaDb

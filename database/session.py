@@ -5,7 +5,7 @@ from sqlalchemy.schema import CreateSchema
 
 from typing import Generator
 
-from config import settings
+from configs.config import settings
 
 # Engine
 engine = create_engine(

@@ -2,7 +2,7 @@ from sqlalchemy import select, text
 
 from database.session import SessionLocal
 from database.model import Language
-from config import settings
+from configs.config import settings
 
 with SessionLocal() as db:
     db.execute(text(f"ALTER DATABASE {settings.dbNamer} SET timezone TO 'UTC';"))
