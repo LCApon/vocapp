@@ -3,7 +3,9 @@ services:
     build: .
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+        restart: true
     networks:
       - reverse-proxy-net
       - vocapp-net
@@ -31,6 +33,12 @@ services:
       - POSTGRES_USER=${DBNAMER}
       - POSTGRES_PASSWORD=${DBNAMER}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "${DBNAMER}"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
     volumes:
       - /mnt/vocapp/db:/var/lib/postgresql
     networks:
