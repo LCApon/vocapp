@@ -19,6 +19,7 @@
     <style>
         :root {
             --highlight: #b7fe34;
+            --text-reading: 0.9em;
             --text-note: 1.1em;
             --text-sense: 1.3em;
             --text-word: 1.7em;
@@ -66,6 +67,10 @@
 
         .flashcard-note {
             font-size: var(--text-note);
+        }
+
+        .flashcard-reading {
+            font-size: var(--text-reading);
         }
 
         .flashcard-sense {
@@ -125,6 +130,7 @@
                             <p id="review-cue"></p>
                             <p id="review-note" class="flashcard-text flashcard-note fst-italic fw-light"></p>
                             <hr></hr>
+                            <span hidden id="review-reading" class="flashcard-reading fw-light m-0 p-0"></span>
                             <p hidden id="review-answer"></p>
                             <p hidden id="review-usage" class="flashcard-text flashcard-note fst-italic fw-light"></p>
                         </div>
@@ -271,6 +277,7 @@
                 body: {
                     cue: getElement('review-cue'),
                     note: getElement('review-note'),
+                    reading: getElement('review-reading'),
                     answer: getElement('review-answer'),
                     usage: getElement('review-usage'),
                 },
@@ -379,11 +386,13 @@
         footer.post.hidden = true;
         header.btnEdit.hidden = true;
 
+        body.reading.hidden = true;
         body.answer.hidden = true;
         body.usage.hidden = true;
 
         // Prepare card content data based on review type
         cardCurrent.usage = dataReview.usage;
+        cardCurrent.reading = '';
 
         if (dataReview.typeReview === 1) {
             cardCurrent.cue = dataReview.lexeme;
@@ -392,13 +401,15 @@
             classAnswer = "flashcard-text flashcard-sense"
         } else if (dataReview.typeReview === 2) {
             cardCurrent.cue = dataReview.sense;
+
             if (dataReview.lexeme != dataReview.word) {
-                cardCurrent.answer = `${dataReview.lexeme} (${dataReview.word})`;
+                cardCurrent.reading = dataReview.word;
+                classAnswer = "flashcard-word p-0 m-0"
             } else {
-                cardCurrent.answer = dataReview.lexeme;
+                classAnswer = "flashcard-text flashcard-word"
             }
+            cardCurrent.answer = dataReview.lexeme;
             classCue = "flashcard-text flashcard-sense"
-            classAnswer = "flashcard-text flashcard-word"
         } else if (dataReview.typeReview === 4) {
             cardCurrent.cue = dataReview.lexeme;
             cardCurrent.answer = dataReview.word;
@@ -410,12 +421,13 @@
             cardCurrent.idx = cardCurrent.idx + 1;
             updateCard();
         }
-
+  
         // Fill card info
         header.pos.textContent = dataReview.pos;
         body.cue.textContent = cardCurrent.cue;
         body.cue.className = classCue;
         body.note.textContent = dataReview.note;
+        body.reading.textContent = cardCurrent.reading;
         body.answer.textContent = cardCurrent.answer;
         body.answer.className = classAnswer;
         body.usage.textContent = cardCurrent.usage;
@@ -442,7 +454,8 @@
     // Show review answer on button click
     async function show_review() {
         // Unhide answer and rating
-        const card = el.card
+        const card = el.card;
+        card.body.reading.hidden = false;
         card.body.answer.hidden = false;
         card.body.usage.hidden = false;
         card.footer.post.hidden = false;
